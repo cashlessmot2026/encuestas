@@ -172,16 +172,14 @@ textarea.inp{min-height:110px;resize:vertical}
 /* ============================================================
    CONFIGURACIÓN — pega aquí los datos de tu proyecto Supabase
    (Supabase > Project Settings > API). La anon key es pública.
-   Si lo dejas vacío, la app corre en MODO DEMO con datos locales.
    ============================================================ */
 const CONFIG = {
-  SUPABASE_URL: '',
-  SUPABASE_ANON_KEY: '',
+  SUPABASE_URL: 'https://prwmfhqxuscduunnjrho.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByd21maHF4dXNjZHV1bm5qcmhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1OTkwODAsImV4cCI6MjEwMzE3NTA4MH0.IZ3GsGpMOyCwW1k61BItMwO0LVnpE-OT048Ep9r1IY8',
 };
 
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
-const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
-const sb = DEMO ? null : window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 /* ---------- utilidades ---------- */
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id' + Math.random().toString(36).slice(2) + Date.now().toString(36));
@@ -201,72 +199,40 @@ const googleUrl = (s) => s.google_review_url || (s.google_place_id ? 'https://se
 const toast = (msg, type) => window.dispatchEvent(new CustomEvent('toast', { detail: { msg, type } }));
 const rangeStart = (r) => { if (r === 'all') return null; const d = new Date(); d.setHours(0, 0, 0, 0); if (r !== 'today') d.setDate(d.getDate() - (Number(r) - 1)); return d; };
 
-/* ---------- capa de datos (Supabase o demo local) ---------- */
+/* ---------- capa de datos (Supabase) ---------- */
 const ck = ({ data, error }) => { if (error) throw error; return data; };
-let demoMem = null;
-const demoLoad = () => {
-  if (demoMem) return demoMem;
-  try { const d = JSON.parse(localStorage.getItem('aq_demo_v1')); if (d) return demoMem = d; } catch (e) {}
-  const names = ['Carlos Pérez', 'María Gómez', 'Luis Rivera', 'Ana Torres', 'Jorge Díaz', 'Sofía Ramírez'];
-  const waiters = names.map((n, i) => ({ id: uid(), code: 'demo' + (i + 1), full_name: n, cedula: String(1000000 + i * 7919), nfc_serial: i < 3 ? '04:A2:' + i : null, active: true, created_at: new Date(Date.now() - 1e9 + i).toISOString() }));
-  const questions = [
-    { id: uid(), text: '¿La comida llegó a tiempo?', type: 'yesno', options: [], required: false, position: 1, active: true },
-    { id: uid(), text: '¿Qué fue lo que más te gustó?', type: 'choice', options: ['Atención', 'Comida', 'Ambiente', 'Rapidez'], required: false, position: 2, active: true },
-  ];
-  const responses = [];
-  for (let i = 0; i < 160; i++) {
-    const wi = Math.floor(Math.random() * Math.random() * waiters.length * 1.4) % waiters.length;
-    const t = new Date(Date.now() - Math.random() * 30 * 864e5); t.setHours(11 + Math.floor(Math.random() * 11), Math.floor(Math.random() * 60));
-    const base = 3.2 + (waiters.length - wi) * 0.25 + Math.random() * 1.3;
-    responses.push({ id: uid(), waiter_id: waiters[wi].id, rating: Math.max(1, Math.min(5, Math.round(base))), scale: 5, answers: {}, comment: Math.random() > .7 ? 'Muy buen servicio, gracias.' : null, created_at: t.toISOString() });
-  }
-  return demoMem = { settings: { ...DEFAULTS }, waiters, questions, responses };
-};
-const demoSave = () => { try { localStorage.setItem('aq_demo_v1', JSON.stringify(demoMem)); } catch (e) {} };
-const upsertLocal = (arr, row) => { const i = arr.findIndex(x => x.id === row.id); if (i >= 0) arr[i] = { ...arr[i], ...row }; else arr.push(row); demoSave(); return row; };
-
 const api = {
   async getSettings() {
-    if (DEMO) return demoLoad().settings;
     const d = ck(await sb.from('settings').select('*').eq('id', 1).maybeSingle());
     return { ...DEFAULTS, ...(d || {}) };
   },
   async saveSettings(p) {
-    if (DEMO) { Object.assign(demoLoad().settings, p); demoSave(); return; }
     ck(await sb.from('settings').upsert({ ...p, id: 1 }));
   },
   async listWaiters() {
-    if (DEMO) return [...demoLoad().waiters];
     return ck(await sb.from('waiters').select('*').order('created_at'));
   },
   async getWaiterByCode(code) {
-    if (DEMO) return demoLoad().waiters.find(w => w.code === code) || null;
     return ck(await sb.from('waiters').select('*').eq('code', code).maybeSingle());
   },
   async saveWaiter(w) {
-    if (DEMO) return upsertLocal(demoLoad().waiters, { created_at: new Date().toISOString(), ...w });
     return ck(await sb.from('waiters').upsert(w).select().single());
   },
   async deleteWaiter(id) {
-    if (DEMO) { const d = demoLoad(); d.waiters = d.waiters.filter(x => x.id !== id); d.responses = d.responses.filter(x => x.waiter_id !== id); demoSave(); return; }
     ck(await sb.from('waiters').delete().eq('id', id));
   },
   async listQuestions(onlyActive) {
-    if (DEMO) return demoLoad().questions.filter(q => !onlyActive || q.active).sort((a, b) => a.position - b.position);
     let q = sb.from('questions').select('*').order('position');
     if (onlyActive) q = q.eq('active', true);
     return ck(await q);
   },
   async saveQuestion(q) {
-    if (DEMO) return upsertLocal(demoLoad().questions, q);
     return ck(await sb.from('questions').upsert(q).select().single());
   },
   async deleteQuestion(id) {
-    if (DEMO) { const d = demoLoad(); d.questions = d.questions.filter(x => x.id !== id); demoSave(); return; }
     ck(await sb.from('questions').delete().eq('id', id));
   },
   async listResponses(since) {
-    if (DEMO) return demoLoad().responses.filter(r => !since || new Date(r.created_at) >= since).sort((a, b) => b.created_at.localeCompare(a.created_at));
     const out = []; // Supabase devuelve máx. 1000 filas por llamada: paginamos
     for (let from = 0; ; from += 1000) {
       let q = sb.from('responses').select('*').order('created_at', { ascending: false }).range(from, from + 999);
@@ -278,11 +244,9 @@ const api = {
     return out;
   },
   async addResponse(r) {
-    if (DEMO) { upsertLocal(demoLoad().responses, { ...r, id: uid(), created_at: new Date().toISOString() }); return; }
     ck(await sb.from('responses').insert(r));
   },
   async deleteResponse(id) {
-    if (DEMO) { const d = demoLoad(); d.responses = d.responses.filter(x => x.id !== id); demoSave(); return; }
     ck(await sb.from('responses').delete().eq('id', id));
   },
 };
@@ -867,7 +831,6 @@ function Admin() {
         <div className="tabs">{tabs.map(([k, i, l]) => <button key={k} className={'tab' + (tab === k ? ' on' : '')} onClick={() => setTab(k)}><Ico n={i} />{l}</button>)}</div>
       </div>
       <div className="ad-main">
-        {DEMO && <div className="banner">Modo demo: los datos se guardan solo en este navegador. Pega tu URL y anon key de Supabase en <code>CONFIG</code> (arriba en index.html) para usar la nube.</div>}
         {(tab === 'resumen' || tab === 'respuestas') && <div className="chips">{ranges.map(([k, l]) => <button key={k} className={'chip' + (range === k ? ' on' : '')} onClick={() => setRange(k)}>{l}</button>)}</div>}
         {loading ? <div className="card"><p className="muted">Cargando…</p></div> : <>
           {tab === 'resumen' && <Dashboard {...data} range={range} />}

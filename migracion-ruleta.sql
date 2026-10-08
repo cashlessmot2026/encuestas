@@ -93,3 +93,6 @@ end $$;
 grant execute on function spin_roulette(uuid, text) to anon;
 
 notify pgrst, 'reload schema';
+
+-- Enlace de reseña de TripAdvisor de Aquamare Hotel
+update settings set tripadvisor_review_url = 'https://www.tripadvisor.es/UserReviewEdit-g297482-d23720352-Aquamare_Hotel-San_Andres_Island_San_Andres_and_Providencia_Department.html' where id = 1;

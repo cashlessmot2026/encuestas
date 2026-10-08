@@ -94,7 +94,15 @@ textarea.inp{min-height:110px;resize:vertical}
 .mini{font-size:12px;opacity:.8;margin-top:10px}
 .pick{display:grid;gap:10px;margin-top:12px}
 .foot{text-align:center;margin-top:22px;font-size:13px}
-.foot a{color:var(--muted);text-decoration:none}
+.foot a{color:var(--muted);text-decoration:underline;cursor:pointer}
+.chk{display:flex;gap:12px;align-items:flex-start;cursor:pointer;padding:14px;border-radius:16px;background:var(--ice);margin:14px 0;font-weight:600;font-size:15px;line-height:1.35;user-select:none}
+.chk input{appearance:none;-webkit-appearance:none;flex:none;width:26px;height:26px;border-radius:8px;background:#fff;box-shadow:inset 0 0 0 2px var(--sky);margin:0;cursor:pointer;display:grid;place-items:center;transition:background .2s,transform .15s}
+.chk input:checked{background:var(--navy);box-shadow:none}
+.chk input:checked::after{content:"";width:6px;height:12px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.chk input:active{transform:scale(.88)}
+.policy{text-align:left;font-size:14px;line-height:1.5;max-height:46dvh;overflow:auto;padding-right:6px;-webkit-overflow-scrolling:touch}
+.policy h3{font-size:15px;margin:14px 0 4px}.policy p{margin:0 0 6px;color:#2B3F6B}
+.nfccode{font-family:ui-monospace,Menlo,Consolas,monospace;background:#fff;border-radius:8px;padding:2px 8px;font-size:12px;word-break:break-all}
 
 /* admin */
 .ad-head{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;box-shadow:0 6px 20px rgba(6,16,69,.3)}
@@ -192,7 +200,42 @@ const fmtScore = (v10, mode) => v10 == null ? '—' : mode === 'stars' ? (v10 / 
 const initials = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('');
 const PALETTE = ['#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#84CC16', '#6366F1', '#EAB308', '#06B6D4', '#D946EF', '#22C55E', '#FB7185'];
 const colorFor = (i) => i < PALETTE.length ? PALETTE[i] : `hsl(${(i * 47) % 360} 70% 50%)`;
-const DEFAULTS = { id: 1, business_name: 'Aquamare Hotel', main_question: '¿Cómo calificas el servicio de tu mesero?', rating_scale: 'stars', google_place_id: '', google_review_url: '', site_url: '', thanks_message: '¡Gracias por tu opinión! Nos ayuda a mejorar cada día.' };
+const DEFAULTS = { id: 1, business_name: 'Aquamare Hotel', main_question: '¿Cómo calificas el servicio de tu mesero?', rating_scale: 'stars', google_place_id: '', google_review_url: '', site_url: '', thanks_message: '¡Gracias por tu opinión! Nos ayuda a mejorar cada día.', privacy_company: 'Aquamare Hotel', privacy_nit: '', privacy_address: '', privacy_email: '', privacy_policy: '', privacy_version: '1.0' };
+const POLICY_TPL = `## 1. Responsable del tratamiento
+{empresa}, NIT {nit}, domicilio {direccion}, correo electrónico {email}.
+
+## 2. Marco legal
+Esta política se adopta conforme a los artículos 15 y 20 de la Constitución Política de Colombia, la Ley 1581 de 2012, el Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015) y las normas que los modifiquen o complementen.
+
+## 3. Datos que recolectamos
+Las calificaciones y respuestas de la encuesta, tus comentarios (opcionales), el mesero que te atendió y la fecha y hora de la encuesta. No te pedimos nombre, documento ni datos de contacto. Te pedimos no incluir en los comentarios datos sensibles (salud, origen racial o étnico, orientación política, religiosa o sexual, datos biométricos, etc.); suministrarlos es facultativo y no estás obligado a hacerlo.
+
+## 4. Finalidades del tratamiento
+Evaluar y mejorar la calidad del servicio; medir el desempeño del personal de atención, para lo cual tu encuesta se asocia al mesero que te atendió; elaborar estadísticas internas; y, solo si tú lo decides, invitarte a publicar una reseña en plataformas externas como Google.
+
+## 5. Tus derechos como titular
+Conocer, actualizar y rectificar tus datos; solicitar prueba de la autorización otorgada; ser informado sobre el uso que se ha dado a tus datos; presentar quejas ante la Superintendencia de Industria y Comercio (SIC); revocar la autorización y/o solicitar la supresión de tus datos; y acceder de forma gratuita a ellos (art. 8, Ley 1581 de 2012).
+
+## 6. Cómo ejercer tus derechos
+Escríbenos a {email} indicando la fecha y hora aproximada de tu encuesta y el mesero que te atendió. Las consultas se responden en máximo 10 días hábiles y los reclamos en máximo 15 días hábiles (arts. 14 y 15, Ley 1581 de 2012).
+
+## 7. Datos de colaboradores
+El nombre completo y la cédula del personal de servicio se tratan únicamente para identificarlo, asignarle las encuestas recibidas y evaluar su servicio, con la autorización de cada colaborador.
+
+## 8. Almacenamiento, transferencia y seguridad
+Los datos se almacenan en servidores de un proveedor de infraestructura en la nube con medidas técnicas razonables de seguridad. No vendemos tus datos. El enlace a Google u otras plataformas es voluntario y se rige por las políticas de esas plataformas.
+
+## 9. Vigencia y cambios
+Conservamos la información mientras sea necesaria para las finalidades descritas o hasta que solicites su supresión. Esta política puede actualizarse; la versión vigente es la publicada en esta página.`;
+const policyText = (st) => (st.privacy_policy && st.privacy_policy.trim() ? st.privacy_policy : POLICY_TPL)
+  .replace(/\{empresa\}/g, st.privacy_company || st.business_name).replace(/\{nit\}/g, st.privacy_nit || '[NIT por configurar]')
+  .replace(/\{direccion\}/g, st.privacy_address || '[dirección por configurar]').replace(/\{email\}/g, st.privacy_email || '[correo por configurar]');
+function Policy({ settings }) {
+  return <div className="policy">{policyText(settings).split(/\r?\n+/).map((b, i) => b.startsWith('## ') ? <h3 key={i}>{b.slice(3)}</h3> : <p key={i}>{b}</p>)}</div>;
+}
+function PolicyModal({ settings, onClose }) {
+  return <Modal onClose={onClose}><div className="h2">Política de tratamiento de datos personales</div><Policy settings={settings} /><Btn kind="sky" className="block" style={{ marginTop: 14 }} onClick={onClose}>Cerrar</Btn></Modal>;
+}
 const baseUrl = (s) => { let u = (s && s.site_url) || (location.origin + location.pathname.replace(/[^/]*$/, '')); return u.endsWith('/') ? u : u + '/'; };
 const waiterUrl = (s, code) => baseUrl(s) + '?m=' + code;
 const googleUrl = (s) => s.google_review_url || (s.google_place_id ? 'https://search.google.com/local/writereview?placeid=' + encodeURIComponent(s.google_place_id) : '');
@@ -204,10 +247,12 @@ const ck = ({ data, error }) => { if (error) throw error; return data; };
 const api = {
   async getSettings() {
     const d = ck(await sb.from('settings').select('*').eq('id', 1).maybeSingle());
-    return { ...DEFAULTS, ...(d || {}) };
+    return { ...DEFAULTS, ...(d || {}), _keys: d ? Object.keys(d) : [] };
   },
   async saveSettings(p) {
-    ck(await sb.from('settings').upsert({ ...p, id: 1 }));
+    const { _keys, ...rest } = p; // solo columnas que existen en la base
+    const body = _keys && _keys.length ? Object.fromEntries(Object.entries(rest).filter(([k]) => _keys.includes(k))) : rest;
+    ck(await sb.from('settings').upsert({ ...body, id: 1 }));
   },
   async listWaiters() {
     return ck(await sb.from('waiters').select('*').order('created_at'));
@@ -244,7 +289,14 @@ const api = {
     return out;
   },
   async addResponse(r) {
-    ck(await sb.from('responses').insert(r));
+    const { error } = await sb.from('responses').insert(r);
+    if (!error) return;
+    if (error.code === 'PGRST204' || /consent|policy_version/.test(error.message)) { // base sin migrar: guarda la prueba de aceptación dentro de answers
+      const { consent_accepted, policy_version, ...rest } = r;
+      ck(await sb.from('responses').insert({ ...rest, answers: { ...rest.answers, _consent: { accepted: consent_accepted, at: new Date().toISOString(), v: policy_version } } }));
+      return;
+    }
+    throw error;
   },
   async deleteResponse(id) {
     ck(await sb.from('responses').delete().eq('id', id));
@@ -386,6 +438,10 @@ function Survey({ code }) {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [err, setErr] = useState('');
+  const [consent, setConsent] = useState(false);
+  const [agree, setAgree] = useState(false);
+  const [refused, setRefused] = useState(false);
+  const [policyOpen, setPolicyOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -402,10 +458,29 @@ function Survey({ code }) {
     <div className="sv"><div className="sv-in">
       <img className="sv-logo" src="aqua.png" alt={settings ? settings.business_name : ''} />
       {children}
+      <div className="foot"><a onClick={() => setPolicyOpen(true)}>Política de tratamiento de datos personales</a></div>
+      {policyOpen && <PolicyModal settings={settings} onClose={() => setPolicyOpen(false)} />}
     </div></div>
   );
   if (boot.status === 'error') return frame(<div className="card"><div className="q">No se pudo cargar</div><p className="muted">{boot.msg}</p></div>);
   if (boot.status === 'notfound') return frame(<div className="card"><div className="q">TAG o QR no válido</div><p className="muted">No encontramos a ese mesero. Pídele a tu mesero que te muestre su QR de nuevo.</p><a className="btn sky block" style={{ marginTop: 16 }} href="./">Elegir mesero</a></div>);
+
+  if (refused) return frame(<div className="card done"><div className="q">Sin tu autorización no podemos continuar</div><p className="muted">No registramos ninguna información. Si cambias de opinión puedes aceptar y responder la encuesta.</p><Btn kind="sky" className="block" style={{ marginTop: 16 }} onClick={() => setRefused(false)}>Volver</Btn></div>);
+  if (!consent) return frame(
+    <div>
+      <div className="who"><div className="avatar">{initials(waiter.full_name)}</div><div><div style={{ opacity: .75, fontSize: 13 }}>Te atendió</div><div style={{ fontWeight: 800, fontSize: 18 }}>{waiter.full_name}</div></div></div>
+      <div className="card">
+        <div className="q">Tu privacidad es importante</div>
+        <p className="muted" style={{ fontSize: 15, lineHeight: 1.45 }}><b>{settings.privacy_company || settings.business_name}</b> tratará tus respuestas y comentarios para evaluar y mejorar el servicio y asociarlos al mesero que te atendió, conforme a la Ley 1581 de 2012. No te pedimos nombre ni datos de contacto. Tienes derecho a conocer, actualizar, rectificar y suprimir tus datos, y a revocar esta autorización.</p>
+        <p style={{ marginTop: 8 }}><a style={{ fontWeight: 700, cursor: 'pointer' }} onClick={() => setPolicyOpen(true)}>Leer la política completa</a></p>
+        <label className="chk"><input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} /><span>Autorizo el tratamiento de mis datos personales según la Política de Tratamiento de Datos Personales.</span></label>
+        <div className="nav" style={{ marginTop: 6 }}>
+          <Btn kind="ghost" onClick={() => setRefused(true)}>No acepto</Btn>
+          <Btn kind="sky" className="grow" disabled={!agree} onClick={() => setConsent(true)}>Acepto y continuar</Btn>
+        </div>
+      </div>
+    </div>
+  );
 
   const mode = settings.rating_scale, max = mode === 'ten' ? 10 : 5;
   const steps = [{ k: 'main' }, ...questions.map(q => ({ k: q.id, q })), { k: 'comment' }];
@@ -419,7 +494,7 @@ function Survey({ code }) {
 
   const submit = async () => {
     setSending(true); setErr('');
-    try { await api.addResponse({ waiter_id: waiter.id, rating, scale: max, answers, comment: comment.trim() || null }); setDone(true); }
+    try { await api.addResponse({ waiter_id: waiter.id, rating, scale: max, answers, comment: comment.trim() || null, consent_accepted: true, policy_version: settings.privacy_version || '1.0' }); setDone(true); }
     catch (e) { setErr('No se pudo enviar: ' + e.message); }
     setSending(false);
   };
@@ -481,7 +556,7 @@ function Survey({ code }) {
 
 /* ---------- inicio sin QR: elegir mesero ---------- */
 function Home() {
-  const [s, setS] = useState(null), [ws, setWs] = useState(null);
+  const [s, setS] = useState(null), [ws, setWs] = useState(null), [pol, setPol] = useState(false);
   useEffect(() => { Promise.all([api.getSettings(), api.listWaiters()]).then(([a, b]) => { setS(a); setWs(b.filter(w => w.active)); }).catch(e => setWs(e)); }, []);
   if (!ws) return <div className="splash"><img src="aqua.png" alt="" /></div>;
   return (
@@ -495,7 +570,8 @@ function Home() {
           {Array.isArray(ws) && !ws.length && <p className="muted">Aún no hay meseros registrados.</p>}
         </div>
       </div>
-      <div className="foot"><a href="#/admin">Administración</a></div>
+      <div className="foot"><a onClick={() => setPol(true)}>Política de tratamiento de datos personales</a></div>
+      {pol && s && <PolicyModal settings={s} onClose={() => setPol(false)} />}
     </div></div>
   );
 }
@@ -662,7 +738,7 @@ function Waiters({ waiters, settings, responses, reload }) {
         <div className="stack">
           {waiters.map((w, i) => (
             <div className="wcard" key={w.id}>
-              <div className="qr" style={{ cursor: 'pointer' }} onClick={() => setShow(w)}><QR text={url(w)} /></div>
+              <div className="qr" style={{ cursor: 'pointer', width: 104, height: 104 }} onClick={() => setShow(w)}><QR text={url(w)} /></div>
               <div className="grow" style={{ minWidth: 150 }}>
                 <div style={{ fontWeight: 800 }}><span className="dot" style={{ background: colorFor(i) }} />{w.full_name}</div>
                 <div className="muted" style={{ fontSize: 13 }}>CC {w.cedula} · {counts[w.id] || 0} encuestas</div>
@@ -670,11 +746,13 @@ function Waiters({ waiters, settings, responses, reload }) {
                   <span className={'tag ' + (w.nfc_serial ? 'ok' : 'no')}>{w.nfc_serial ? 'NFC listo' : 'Sin NFC'}</span>
                   {!w.active && <span className="tag off">Inactivo</span>}
                 </div>
+                <div style={{ fontSize: 12, marginTop: 8 }}><span className="muted">Código NFC: </span>{w.nfc_serial ? <span className="nfccode">{w.nfc_serial}</span> : <span className="muted">sin asignar</span>}</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}><span className="muted">Enlace del QR/NFC: </span><span className="nfccode">{url(w)}</span></div>
                 {nfc.id === w.id && nfc.msg && <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>{nfc.msg}</p>}
               </div>
               <div className="row" style={{ gap: 6 }}>
                 <Btn kind="white" className="sm" icon="qr" onClick={() => setShow(w)}>QR</Btn>
-                <Btn kind="white" className="sm" icon="nfc" onClick={() => assignNfc(w, (s) => patch(w, { nfc_serial: s }))}>NFC</Btn>
+                <Btn kind="white" className="sm" icon="nfc" onClick={() => assignNfc(w, (s) => patch(w, { nfc_serial: s }))}>{w.nfc_serial ? 'Reasignar NFC' : 'Asignar NFC (escanear)'}</Btn>
                 <Btn kind="white" className="sm" icon="edit" onClick={() => { setForm({ ...w }); setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Editar</Btn>
                 <Btn kind="white" className="sm" onClick={() => patch(w, { active: !w.active })}>{w.active ? 'Desactivar' : 'Activar'}</Btn>
                 <Confirm label="Borrar" sure="Borra también sus encuestas" onYes={async () => { try { await api.deleteWaiter(w.id); reload(); } catch (e) { toast(e.message, 'err'); } }} />
@@ -766,8 +844,9 @@ function Responses({ waiters, responses, settings, reload }) {
             <div className="row"><span className="score">{settings.rating_scale === 'stars' && r.scale === 5 ? r.rating + '★' : r.rating + '/' + r.scale}</span><div><b>{name[r.waiter_id] || 'Mesero eliminado'}</b><div className="muted" style={{ fontSize: 12 }}>{fmtDateTime(r.created_at)}</div></div></div>
             <Confirm label="" sure="¿Borrar?" onYes={async () => { try { await api.deleteResponse(r.id); reload(); } catch (e) { toast(e.message, 'err'); } }} />
           </div>
-          {Object.values(r.answers || {}).map((a, i) => <div key={i} style={{ fontSize: 14, marginTop: 6 }}><span className="muted">{a.q}</span> <b>{String(a.v)}</b></div>)}
+          {Object.entries(r.answers || {}).filter(([k]) => k !== '_consent').map(([, a], i) => <div key={i} style={{ fontSize: 14, marginTop: 6 }}><span className="muted">{a.q}</span> <b>{String(a.v)}</b></div>)}
           {r.comment && <p style={{ marginTop: 8, fontStyle: 'italic' }}>“{r.comment}”</p>}
+          {(r.consent_accepted || (r.answers && r.answers._consent)) && <span className="tag ok" style={{ marginTop: 8 }}>Aceptó política de datos v{r.policy_version || (r.answers._consent || {}).v}</span>}
         </div>
       ))}
       {list.length > lim && <Btn kind="ghost" className="block" onClick={() => setLim(lim + 40)}>Ver más</Btn>}
@@ -799,8 +878,21 @@ function Settings({ settings, reload }) {
         <div className="field"><label>…o enlace directo de reseña (opcional, tiene prioridad)</label><input className="inp" value={s.google_review_url} onChange={set('google_review_url')} placeholder="https://g.page/r/…/review" /></div>
         <div className="field"><label>URL pública de la app (opcional)</label><input className="inp" value={s.site_url} onChange={set('site_url')} placeholder="https://tuusuario.github.io/tag-mesero/" /></div>
         <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Es la dirección que llevan los QR/TAG. Si la dejas vacía se usa la de esta página; confírmala antes de imprimir.</p>
-        <Btn kind="sky" className="block" onClick={save}>Guardar ajustes</Btn>
       </div>
+      <div className="card span2">
+        <div className="h2">Privacidad · Habeas Data (Ley 1581 de 2012)</div>
+        {s._keys && s._keys.length > 0 && !s._keys.includes('privacy_company') && <div className="banner">Falta ejecutar en Supabase el archivo <code>migracion-privacidad.sql</code> para guardar estos datos.</div>}
+        <div className="grid2" style={{ gap: 0 }}>
+          <div className="field"><label>Razón social / responsable</label><input className="inp" value={s.privacy_company} onChange={set('privacy_company')} /></div>
+          <div className="field"><label>NIT</label><input className="inp" value={s.privacy_nit} onChange={set('privacy_nit')} placeholder="900.000.000-0" /></div>
+          <div className="field"><label>Dirección</label><input className="inp" value={s.privacy_address} onChange={set('privacy_address')} /></div>
+          <div className="field"><label>Correo para ejercer derechos (consultas y reclamos)</label><input className="inp" type="email" value={s.privacy_email} onChange={set('privacy_email')} /></div>
+          <div className="field"><label>Versión de la política</label><input className="inp" value={s.privacy_version} onChange={set('privacy_version')} /></div>
+        </div>
+        <div className="field"><label>Texto de la política (déjalo vacío para usar el texto estándar)</label><textarea className="inp" style={{ minHeight: 120 }} value={s.privacy_policy} onChange={set('privacy_policy')} placeholder="Opcional. Usa ## para títulos y {empresa}, {nit}, {direccion}, {email} como variables." /></div>
+        <p className="muted" style={{ fontSize: 12 }}>El texto estándar es una plantilla general: revísalo con tu asesor legal. Si tu empresa debe inscribir bases de datos en el RNBD de la SIC, hazlo según corresponda. Al cambiar el texto, sube la versión.</p>
+      </div>
+      <div className="span2"><Btn kind="sky" className="block" onClick={save}>Guardar ajustes</Btn></div>
     </div>
   );
 }

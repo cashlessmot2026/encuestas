@@ -22,3 +22,6 @@ Archivos: `index.html` (toda la app en React), `manifest.json`, `sw.js`, iconos,
 
 ## Seguridad
 El admin no tiene login (como pediste), así que **cualquiera que conozca la URL `#/admin` y use la anon key puede ver/editar datos**, incluidas las cédulas. No publiques ni compartas el enlace del admin.
+
+## Habeas Data (Ley 1581 de 2012)
+Ejecuta `migracion-privacidad.sql` en Supabase y completa NIT, dirección y correo en Admin → Ajustes → Privacidad. El texto estándar es una plantilla: revísalo con tu asesor legal.

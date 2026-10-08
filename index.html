@@ -90,6 +90,13 @@ textarea.inp{min-height:110px;resize:vertical}
 .g-card{margin-top:16px;background:var(--navy);color:#fff;border-radius:22px;padding:20px;text-align:center;animation:rise .5s .2s both}
 .g-card .gs{display:flex;justify-content:center;gap:4px;margin-bottom:8px}
 .g-card .gs svg{width:28px;fill:#FFB800;animation:pop .6s both}
+.wheel-wrap{position:relative;width:min(280px,78vw);margin:6px auto 16px}
+.wheel{width:100%;display:block;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35));transition:transform 4.5s cubic-bezier(.12,.7,.1,1)}
+.wpin{position:absolute;left:50%;top:-8px;transform:translateX(-50%);border:11px solid transparent;border-top:22px solid #FF4D6D;z-index:2;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+.prize{background:#fff;color:var(--navy);border-radius:16px;padding:14px;animation:rise .5s both}
+.prize .big{font-size:30px;font-weight:900;margin:2px 0}
+.prize .cpn{display:inline-block;margin:6px 0;padding:8px 16px;border:2px dashed var(--navy);border-radius:12px;font-weight:900;letter-spacing:3px;font-size:20px}
+.prize .mini{color:var(--navy)}
 .g-card p{color:var(--sky2);margin:6px 0 16px;font-size:15px}
 .mini{font-size:12px;opacity:.8;margin-top:10px}
 .pick{display:grid;gap:10px;margin-top:12px}
@@ -200,7 +207,7 @@ const fmtScore = (v10, mode) => v10 == null ? '—' : mode === 'stars' ? (v10 / 
 const initials = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('');
 const PALETTE = ['#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#84CC16', '#6366F1', '#EAB308', '#06B6D4', '#D946EF', '#22C55E', '#FB7185'];
 const colorFor = (i) => i < PALETTE.length ? PALETTE[i] : `hsl(${(i * 47) % 360} 70% 50%)`;
-const DEFAULTS = { id: 1, business_name: 'Aquamare Hotel', main_question: '¿Cómo calificas el servicio de tu mesero?', rating_scale: 'stars', google_place_id: '', google_review_url: '', site_url: '', thanks_message: '¡Gracias por tu opinión! Nos ayuda a mejorar cada día.', privacy_company: 'Aquamare Hotel', privacy_nit: '', privacy_address: '', privacy_email: '', privacy_policy: '', privacy_version: '1.0' };
+const DEFAULTS = { id: 1, business_name: 'Aquamare Hotel', main_question: '¿Cómo calificas el servicio de tu mesero?', rating_scale: 'stars', google_place_id: '', google_review_url: '', tripadvisor_review_url: '', roulette_enabled: false, roulette_start_hour: 10, roulette_end_hour: 21, roulette_valid_days: 30, site_url: '', thanks_message: '¡Gracias por tu opinión! Nos ayuda a mejorar cada día.', privacy_company: 'Aquamare Hotel', privacy_nit: '', privacy_address: '', privacy_email: '', privacy_policy: '', privacy_version: '1.0' };
 const POLICY_TPL = `## 1. Responsable del tratamiento
 {empresa}, NIT {nit}, domicilio {direccion}, correo electrónico {email}.
 
@@ -298,6 +305,20 @@ const api = {
     }
     throw error;
   },
+  async spin(responseId, device) {
+    const { data, error } = await sb.rpc('spin_roulette', { p_response: responseId, p_device: device });
+    if (error) throw error;
+    return data;
+  },
+  async listPrizes() {
+    return ck(await sb.from('prizes').select('*').not('won_at', 'is', null).order('won_at', { ascending: false }).limit(200));
+  },
+  async todayPrizes() {
+    return ck(await sb.from('prizes').select('*').eq('day', dayKey(new Date())).order('release_at'));
+  },
+  async redeemPrize(id) {
+    ck(await sb.from('prizes').update({ redeemed_at: new Date().toISOString() }).eq('id', id));
+  },
   async deleteResponse(id) {
     ck(await sb.from('responses').delete().eq('id', id));
   },
@@ -328,6 +349,7 @@ const P = {
   users: 'M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M10 11a4 4 0 100-8 4 4 0 000 8zm13 10v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8',
   list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
   chat: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
+  gift: 'M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z',
   gear: 'M12 15a3 3 0 100-6 3 3 0 000 6zm7.4-3a7.4 7.4 0 00-.1-1.3l2-1.5-2-3.4-2.3.9a7 7 0 00-2.2-1.3L14.4 3h-4l-.4 2.4a7 7 0 00-2.2 1.3l-2.3-.9-2 3.4 2 1.5a7.4 7.4 0 000 2.6l-2 1.5 2 3.4 2.3-.9a7 7 0 002.2 1.3l.4 2.4h4l.4-2.4a7 7 0 002.2-1.3l2.3.9 2-3.4-2-1.5c.1-.4.1-.9.1-1.3z',
   plus: 'M12 5v14M5 12h14', qr: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM20 14v3M14 20h3m3 0v1',
   nfc: 'M6 8.3a6 6 0 010 7.4M10 5.6a10 10 0 010 12.8M14 3a14 14 0 010 18',
@@ -429,6 +451,50 @@ function RatingInput({ mode, value, onChange }) {
   );
 }
 
+/* ---------- ruleta de premios ---------- */
+const WHEEL = [{ t: 'win', pct: 10, c: '#4CC9F0' }, { t: 'no', c: '#0B1A66' }, { t: 'win', pct: 5, c: '#FFB800' }, { t: 'no', c: '#0B1A66' }, { t: 'win', pct: 2, c: '#7BE0AD' }, { t: 'no', c: '#0B1A66' }];
+const deviceId = () => { try { let d = localStorage.getItem('aq_dev'); if (!d) { d = uid(); localStorage.setItem('aq_dev', d); } return d; } catch (e) { return null; } };
+function Roulette({ settings, responseId }) {
+  const key = 'aq_spin_' + responseId;
+  const saved = (() => { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } })();
+  const [res, setRes] = useState(saved);
+  const [rot, setRot] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const [msg, setMsg] = useState('');
+  const R = 100, pt = (a) => [R + R * Math.sin(a * Math.PI / 180), R - R * Math.cos(a * Math.PI / 180)];
+  const go = async () => {
+    setSpinning(true); setMsg('');
+    let out;
+    try { out = await api.spin(responseId, deviceId()); } catch (e) { setSpinning(false); setMsg('No se pudo girar: ' + e.message); return; }
+    if (out.error) { setSpinning(false); setMsg(out.error === 'device' ? 'Hoy ya jugaste la ruleta desde este celular. ¡Vuelve en tu próxima visita!' : 'La ruleta no está disponible para esta encuesta.'); return; }
+    const idxs = WHEEL.map((w, i) => [w, i]).filter(([w]) => out.won ? w.pct === out.pct : w.t === 'no').map(([, i]) => i);
+    const i = idxs[Math.floor(Math.random() * idxs.length)];
+    setRot(360 * 6 - (i * 60 + 30 + (Math.random() * 30 - 15)));
+    setTimeout(() => { setSpinning(false); setRes(out); try { localStorage.setItem(key, JSON.stringify(out)); } catch (e) {} }, 4600);
+  };
+  return (
+    <div className="g-card rl">
+      <h3 style={{ fontSize: 20 }}>🎁 ¡Gira la ruleta!</h3>
+      <p>Una sola oportunidad de ganar un descuento para tu próxima visita.</p>
+      <div className="wheel-wrap">
+        <div className="wpin" />
+        <svg className="wheel" viewBox="0 0 200 200" style={{ transform: `rotate(${rot}deg)` }}>
+          {WHEEL.map((w, i) => { const [x1, y1] = pt(i * 60), [x2, y2] = pt(i * 60 + 60); return (
+            <g key={i}>
+              <path d={`M100 100 L${x1} ${y1} A${R} ${R} 0 0 1 ${x2} ${y2}Z`} fill={w.c} stroke="#fff" strokeWidth="2" />
+              <g transform={`rotate(${i * 60 + 30} 100 100)`}><text x="100" y="38" textAnchor="middle" fontSize={w.t === 'win' ? 22 : 10.5} fontWeight="800" fill={w.t === 'win' ? '#061045' : '#fff'}>{w.t === 'win' ? w.pct + '%' : 'Sigue'}</text>{w.t === 'no' && <text x="100" y="51" textAnchor="middle" fontSize="10.5" fontWeight="800" fill="#fff">intentando</text>}</g>
+            </g>); })}
+          <circle cx="100" cy="100" r="14" fill="#fff" stroke="#061045" strokeWidth="3" />
+        </svg>
+      </div>
+      {!res && <button className="btn sky block pulse" disabled={spinning} onClick={go}>{spinning ? 'Girando…' : 'GIRAR'}</button>}
+      {msg && <div className="mini">{msg}</div>}
+      {res && res.won && <div className="prize"><div style={{ fontSize: 15 }}>¡Felicitaciones! Ganaste</div><div className="big">{res.pct}% de descuento</div><div className="cpn">{res.code}</div><div className="mini">Válido en tu próxima visita hasta el {fmtDay(res.valid_until)}. Toma una captura de pantalla y muéstrala a tu mesero.</div></div>}
+      {res && !res.won && <div className="prize"><div className="big" style={{ fontSize: 22 }}>¡Sigue intentando!</div><div className="mini">Esta vez no hubo premio. Gracias por participar, ¡te esperamos pronto!</div></div>}
+    </div>
+  );
+}
+
 function Survey({ code }) {
   const [boot, setBoot] = useState({ status: 'loading' });
   const [step, setStep] = useState(0);
@@ -438,6 +504,7 @@ function Survey({ code }) {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [err, setErr] = useState('');
+  const [respId, setRespId] = useState(null);
   const [consent, setConsent] = useState(false);
   const [agree, setAgree] = useState(false);
   const [refused, setRefused] = useState(false);
@@ -494,7 +561,7 @@ function Survey({ code }) {
 
   const submit = async () => {
     setSending(true); setErr('');
-    try { await api.addResponse({ waiter_id: waiter.id, rating, scale: max, answers, comment: comment.trim() || null, consent_accepted: true, policy_version: settings.privacy_version || '1.0' }); setDone(true); }
+    try { const id = uid(); await api.addResponse({ id, waiter_id: waiter.id, rating, scale: max, answers, comment: comment.trim() || null, consent_accepted: true, policy_version: settings.privacy_version || '1.0' }); setRespId(id); setDone(true); }
     catch (e) { setErr('No se pudo enviar: ' + e.message); }
     setSending(false);
   };
@@ -509,6 +576,7 @@ function Survey({ code }) {
           <div className="q" style={{ marginBottom: 8 }}>¡Gracias!</div>
           <p className="muted">{settings.thanks_message}</p>
         </div>
+        {settings.roulette_enabled && respId && <Roulette settings={settings} responseId={respId} />}
         {gurl && (
           <div className="g-card">
             <div className="gs">{[0, 1, 2, 3, 4].map(i => <svg key={i} viewBox="0 0 24 24" style={{ animationDelay: (0.3 + i * 0.1) + 's' }}><path d={P.star} /></svg>)}</div>
@@ -516,6 +584,15 @@ function Survey({ code }) {
             <p>Solo toma 10 segundos y nos ayuda muchísimo.</p>
             <a className="btn sky block pulse" href={gurl} target="_blank" rel="noopener" onClick={openGoogle}>Escribir reseña en Google</a>
             {comment.trim() && <div className="mini">Copiamos tu comentario: solo pégalo en Google.</div>}
+          </div>
+        )}
+        {settings.tripadvisor_review_url && (
+          <div className="g-card ta">
+            <div className="gs">{[0, 1, 2, 3, 4].map(i => <svg key={i} viewBox="0 0 24 24" style={{ animationDelay: (0.3 + i * 0.1) + 's' }}><path d={P.star} /></svg>)}</div>
+            <h3 style={{ fontSize: 20 }}>¿Y en TripAdvisor?</h3>
+            <p>Cuéntales a otros viajeros cómo fue tu experiencia.</p>
+            <a className="btn sky block" href={settings.tripadvisor_review_url} target="_blank" rel="noopener" onClick={openGoogle}>Escribir reseña en TripAdvisor</a>
+            {comment.trim() && <div className="mini">Copiamos tu comentario: solo pégalo en TripAdvisor.</div>}
           </div>
         )}
       </div>
@@ -876,8 +953,22 @@ function Settings({ settings, reload }) {
         <div className="field"><label>Place ID de tu negocio</label><input className="inp" value={s.google_place_id} onChange={set('google_place_id')} placeholder="ChIJ…" /></div>
         <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Búscalo en <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener">el buscador de Place ID de Google</a>. Se abre directo el formulario de reseña.</p>
         <div className="field"><label>…o enlace directo de reseña (opcional, tiene prioridad)</label><input className="inp" value={s.google_review_url} onChange={set('google_review_url')} placeholder="https://g.page/r/…/review" /></div>
+        <div className="h2" style={{ marginTop: 6 }}>Reseñas de TripAdvisor</div>
+        <div className="field"><label>Enlace para escribir reseña en TripAdvisor</label><input className="inp" value={s.tripadvisor_review_url} onChange={set('tripadvisor_review_url')} placeholder="https://www.tripadvisor.com/UserReview-g…-d….html" /></div>
+        <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>En TripAdvisor abre la página de tu hotel, pulsa «Escribir una opinión» y copia la dirección de esa página. Si lo dejas vacío no aparece el botón.</p>
         <div className="field"><label>URL pública de la app (opcional)</label><input className="inp" value={s.site_url} onChange={set('site_url')} placeholder="https://tuusuario.github.io/tag-mesero/" /></div>
         <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Es la dirección que llevan los QR/TAG. Si la dejas vacía se usa la de esta página; confírmala antes de imprimir.</p>
+      </div>
+      <div className="card span2">
+        <div className="h2">Ruleta de premios</div>
+        {s._keys && s._keys.length > 0 && !s._keys.includes('roulette_enabled') && <div className="banner">Falta ejecutar en Supabase el archivo <code>migracion-ruleta.sql</code>.</div>}
+        <div className="field row" style={{ alignItems: 'center' }}><Switch on={!!s.roulette_enabled} onChange={(v) => setS({ ...s, roulette_enabled: v })} /><b>Mostrar la ruleta al terminar la encuesta</b></div>
+        <div className="grid2" style={{ gap: 0 }}>
+          <div className="field"><label>Empieza a repartir (hora, 0–23)</label><input className="inp" type="number" min="0" max="23" value={s.roulette_start_hour} onChange={e => setS({ ...s, roulette_start_hour: +e.target.value })} /></div>
+          <div className="field"><label>Termina de repartir (hora, 1–24)</label><input className="inp" type="number" min="1" max="24" value={s.roulette_end_hour} onChange={e => setS({ ...s, roulette_end_hour: +e.target.value })} /></div>
+          <div className="field"><label>Vigencia del cupón (días)</label><input className="inp" type="number" min="1" value={s.roulette_valid_days} onChange={e => setS({ ...s, roulette_valid_days: +e.target.value })} /></div>
+        </div>
+        <p className="muted" style={{ fontSize: 12 }}>Cada día se reparte 1 premio de 10 %, 1 de 5 % y 1 de 2 %, en horas distintas del horario indicado (hora de Colombia). Cada encuesta gira una sola vez; el resto de giros dicen «Sigue intentando». Los cupones se canjean en la pestaña Premios.</p>
       </div>
       <div className="card span2">
         <div className="h2">Privacidad · Habeas Data (Ley 1581 de 2012)</div>
@@ -897,6 +988,38 @@ function Settings({ settings, reload }) {
   );
 }
 
+function Prizes() {
+  const [list, setList] = useState(null), [today, setToday] = useState([]), [q, setQ] = useState('');
+  const load = useCallback(async () => { try { const [a, b] = await Promise.all([api.listPrizes(), api.todayPrizes()]); setList(a); setToday(b); } catch (e) { setList(e); } }, []);
+  useEffect(() => { load(); }, [load]);
+  if (!list) return <div className="card"><p className="muted">Cargando…</p></div>;
+  if (list instanceof Error) return <div className="card"><div className="banner">Ejecuta <code>migracion-ruleta.sql</code> en Supabase. ({list.message})</div></div>;
+  const redeem = async (p) => { try { await api.redeemPrize(p.id); toast('Cupón canjeado'); load(); } catch (e) { toast(e.message, 'err'); } };
+  const shown = list.filter(p => !q.trim() || (p.code || '').toLowerCase().includes(q.trim().toLowerCase()));
+  const today0 = dayKey(new Date());
+  return (
+    <div className="grid2">
+      <div className="card">
+        <div className="h2">Premios de hoy</div>
+        {today.length === 0 ? <p className="muted">Se crean con el primer giro del día.</p> : today.map(p => (
+          <div className="qrow" key={p.id}><div className="grow"><b>{p.pct}%</b> <span className="muted">· se libera {new Date(p.release_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}</span></div><span className="score">{p.won_at ? 'Entregado' : new Date(p.release_at) <= new Date() ? 'Disponible' : 'Pendiente'}</span></div>
+        ))}
+      </div>
+      <div className="card">
+        <div className="h2">Cupones entregados</div>
+        <div className="field"><input className="inp" placeholder="Buscar código (AQ…)" value={q} onChange={e => setQ(e.target.value)} /></div>
+        {shown.length === 0 ? <p className="muted">Sin cupones.</p> : shown.map(p => {
+          const exp = p.valid_until && p.valid_until < today0;
+          return <div className="qrow" key={p.id}>
+            <div className="grow"><b>{p.code}</b> · {p.pct}%<div className="muted" style={{ fontSize: 12 }}>Ganado {fmtDateTime(p.won_at)} · vence {p.valid_until ? fmtDay(p.valid_until) : '—'}</div></div>
+            {p.redeemed_at ? <span className="muted" style={{ fontSize: 12 }}>Canjeado {fmtDateTime(p.redeemed_at)}</span> : exp ? <span className="muted">Vencido</span> : <Btn kind="sky" className="sm" onClick={() => redeem(p)}>Canjear</Btn>}
+          </div>;
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Admin() {
   const [tab, setTab] = useState('resumen');
   const [range, setRange] = useState('30');
@@ -911,7 +1034,7 @@ function Admin() {
   }, [range]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { const t = setInterval(() => { if (!document.hidden) load(); }, 60000); return () => clearInterval(t); }, [load]);
-  const tabs = [['resumen', 'chart', 'Resumen'], ['meseros', 'users', 'Meseros'], ['preguntas', 'list', 'Preguntas'], ['respuestas', 'chat', 'Respuestas'], ['ajustes', 'gear', 'Ajustes']];
+  const tabs = [['resumen', 'chart', 'Resumen'], ['meseros', 'users', 'Meseros'], ['preguntas', 'list', 'Preguntas'], ['respuestas', 'chat', 'Respuestas'], ['premios', 'gift', 'Premios'], ['ajustes', 'gear', 'Ajustes']];
   const ranges = [['today', 'Hoy'], ['7', '7 días'], ['30', '30 días'], ['90', '90 días'], ['all', 'Todo']];
   return (
     <div>
@@ -929,6 +1052,7 @@ function Admin() {
           {tab === 'meseros' && <Waiters {...data} reload={load} />}
           {tab === 'preguntas' && <Questions {...data} reload={load} />}
           {tab === 'respuestas' && <Responses {...data} reload={load} />}
+          {tab === 'premios' && <Prizes />}
           {tab === 'ajustes' && <Settings key={JSON.stringify(data.settings)} settings={data.settings} reload={load} />}
         </>}
       </div>

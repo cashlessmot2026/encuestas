@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Encuesta Aquamare</title>
+<meta name="theme-color" content="#061045">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Encuesta">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{--navy:#061045;--navy2:#12307F;--sky:#4CC9F0;--sky2:#A9E3F8;--ice:#EAF6FF;--white:#fff;--ink:#061045;--muted:#5B7399;--ok:#22C55E;--bad:#EF4444;--sh:0 10px 30px rgba(6,16,69,.12)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--ice);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100dvh;overscroll-behavior-y:none}
+button,input,select,textarea{font:inherit;color:inherit;border:0;outline:0;background:none}
+h1,h2,h3,p{margin:0}
+a{color:inherit}
+.splash{display:grid;place-items:center;min-height:100dvh;background:var(--navy)}
+.splash img{width:240px;animation:float 2s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px)}}
+
+/* botones animados */
+.btn{position:relative;overflow:hidden;cursor:pointer;border-radius:14px;padding:12px 18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--navy);color:#fff;box-shadow:0 6px 16px rgba(6,16,69,.25);transition:transform .15s,box-shadow .2s,filter .2s;text-decoration:none;user-select:none}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(6,16,69,.3)}
+.btn:active{transform:scale(.95)}
+.btn.sky{background:linear-gradient(135deg,var(--sky),#2AA9E0);color:var(--navy);box-shadow:0 6px 18px rgba(76,201,240,.5)}
+.btn.ghost{background:var(--ice);color:var(--navy);box-shadow:none}
+.btn.white{background:#fff;color:var(--navy)}
+.btn.danger{background:var(--bad);box-shadow:0 6px 16px rgba(239,68,68,.35)}
+.btn.sm{padding:8px 12px;border-radius:12px;font-size:14px}
+.btn.block{width:100%;padding:16px;font-size:17px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn.pulse{animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(76,201,240,.7)}70%{box-shadow:0 0 0 16px rgba(76,201,240,0)}100%{box-shadow:0 0 0 0 rgba(76,201,240,0)}}
+.btn::after{content:"";position:absolute;left:var(--x,50%);top:var(--y,50%);width:0;height:0;border-radius:50%;background:rgba(255,255,255,.5);transform:translate(-50%,-50%);pointer-events:none}
+.btn.rip::after{animation:ripple .6s ease-out}
+@keyframes ripple{from{width:0;height:0;opacity:1}to{width:520px;height:520px;opacity:0}}
+.ico{width:20px;height:20px;flex:none}
+
+/* campos sin bordes */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field>label{font-size:13px;font-weight:700;color:var(--muted)}
+.inp,select.inp,textarea.inp{background:var(--ice);border-radius:14px;padding:13px 14px;width:100%;font-size:16px;transition:box-shadow .2s,background .2s}
+.inp:focus{background:#fff;box-shadow:0 0 0 3px var(--sky)}
+textarea.inp{min-height:110px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1}
+.card{background:#fff;border-radius:22px;padding:18px;box-shadow:var(--sh);animation:rise .4s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}}
+.muted{color:var(--muted)}
+.h2{font-size:18px;font-weight:800;margin-bottom:12px}
+
+/* encuesta (cliente) */
+.sv{min-height:100dvh;background:linear-gradient(180deg,var(--navy) 0,var(--navy) 260px,var(--ice) 260px);padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 24px)}
+.sv-in{max-width:520px;margin:0 auto}
+.sv-logo{display:block;width:210px;max-width:60%;margin:0 auto 18px}
+.who{display:flex;align-items:center;gap:12px;color:#fff;margin:0 4px 14px}
+.avatar{width:46px;height:46px;border-radius:50%;background:var(--sky);color:var(--navy);display:grid;place-items:center;font-weight:800;font-size:19px;flex:none}
+.prog{height:8px;background:rgba(255,255,255,.2);border-radius:99px;overflow:hidden;margin:0 4px 16px}
+.prog>i{display:block;height:100%;background:var(--sky);border-radius:99px;transition:width .4s ease}
+.step{animation:slideIn .35s ease both}
+@keyframes slideIn{from{opacity:0;transform:translateX(26px)}}
+.q{font-size:22px;font-weight:800;line-height:1.25;margin-bottom:18px}
+.stars{display:flex;justify-content:space-between;gap:4px}
+.star{flex:1;background:none;cursor:pointer;padding:4px;transition:transform .2s}
+.star svg{width:100%;height:auto;max-width:62px;fill:#D4E4F4;transition:fill .2s,transform .25s}
+.star.on svg{fill:#FFB800}
+.star:active svg{transform:scale(.8)}
+.star.pop svg{animation:pop .45s ease}
+@keyframes pop{40%{transform:scale(1.35) rotate(-8deg)}}
+.nums{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.num{cursor:pointer;border-radius:16px;padding:16px 0;font-size:20px;font-weight:800;background:var(--ice);color:var(--navy);transition:transform .15s,background .2s}
+.num:active{transform:scale(.9)}
+.num.on{background:var(--navy);color:#fff;transform:scale(1.08);box-shadow:0 8px 18px rgba(6,16,69,.3)}
+.hint{text-align:center;font-weight:700;color:var(--navy2);margin-top:12px;min-height:24px}
+.opts{display:grid;gap:10px}
+.opt{cursor:pointer;text-align:left;padding:16px;border-radius:16px;background:var(--ice);font-weight:700;font-size:16px;transition:transform .15s,background .2s,color .2s}
+.opt:active{transform:scale(.97)}
+.opt.on{background:var(--navy);color:#fff}
+.nav{display:flex;gap:10px;margin-top:22px}
+.done{text-align:center}
+.check{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;background:var(--ok);display:grid;place-items:center;animation:pop .6s ease}
+.check svg{width:46px;height:46px;stroke:#fff;fill:none;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;animation:draw .5s .3s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.g-card{margin-top:16px;background:var(--navy);color:#fff;border-radius:22px;padding:20px;text-align:center;animation:rise .5s .2s both}
+.g-card .gs{display:flex;justify-content:center;gap:4px;margin-bottom:8px}
+.g-card .gs svg{width:28px;fill:#FFB800;animation:pop .6s both}
+.g-card p{color:var(--sky2);margin:6px 0 16px;font-size:15px}
+.mini{font-size:12px;opacity:.8;margin-top:10px}
+.pick{display:grid;gap:10px;margin-top:12px}
+.foot{text-align:center;margin-top:22px;font-size:13px}
+.foot a{color:var(--muted);text-decoration:none}
+
+/* admin */
+.ad-head{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;box-shadow:0 6px 20px rgba(6,16,69,.3)}
+.ad-top{display:flex;align-items:center;gap:12px;justify-content:space-between;max-width:1200px;margin:0 auto}
+.ad-top img{height:40px}
+.tabs{display:flex;gap:8px;overflow-x:auto;max-width:1200px;margin:10px auto 0;padding-bottom:2px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;cursor:pointer;padding:9px 15px;border-radius:99px;font-weight:700;font-size:14px;color:var(--sky2);display:flex;align-items:center;gap:7px;transition:background .2s,color .2s,transform .15s}
+.tab:active{transform:scale(.94)}
+.tab.on{background:var(--sky);color:var(--navy)}
+.ad-main{max-width:1200px;margin:0 auto;padding:16px 14px calc(env(safe-area-inset-bottom) + 40px)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{cursor:pointer;padding:8px 14px;border-radius:99px;background:#fff;font-weight:700;font-size:14px;color:var(--navy);transition:all .2s;box-shadow:0 2px 8px rgba(6,16,69,.08)}
+.chip.on{background:var(--navy);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px}
+.kpi{background:#fff;border-radius:20px;padding:16px;box-shadow:var(--sh);animation:rise .4s both}
+.kpi:nth-child(1){background:var(--navy);color:#fff}
+.kpi:nth-child(2){background:var(--sky);color:var(--navy)}
+.kpi small{display:block;font-size:12px;font-weight:700;opacity:.8;margin-bottom:4px}
+.kpi b{font-size:26px;font-weight:800;line-height:1.1;word-break:break-word}
+.grid2{display:grid;gap:14px;grid-template-columns:1fr}
+.stack{display:grid;gap:14px}
+.chartbox{position:relative;width:100%}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;height:210px;margin-bottom:6px}
+.pod{flex:1;max-width:130px;text-align:center;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.pod .nm{font-weight:800;font-size:13px;margin-bottom:6px;line-height:1.15}
+.pod .bar{border-radius:16px 16px 4px 4px;display:grid;place-items:start center;padding-top:8px;color:#fff;font-weight:800;font-size:22px;animation:grow .9s cubic-bezier(.2,.9,.3,1.2) both;transform-origin:bottom}
+@keyframes grow{from{transform:scaleY(0)}}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;color:var(--muted);font-size:12px;padding:6px 8px}
+.tbl td{padding:10px 8px;background:#fff}
+.tbl tr:nth-child(even) td{background:var(--ice)}
+.tbl td:first-child,.tbl th:first-child{border-radius:12px 0 0 12px}
+.tbl td:last-child{border-radius:0 12px 12px 0}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+.scroll-x{overflow-x:auto}
+.wcard{display:flex;gap:14px;align-items:center;padding:14px;border-radius:18px;background:var(--ice);flex-wrap:wrap}
+.wcard .qr{width:76px;height:76px;flex:none;border-radius:12px;background:#fff;padding:4px}
+.qr svg{width:100%;height:100%;display:block}
+.tag{display:inline-block;padding:3px 9px;border-radius:99px;font-size:12px;font-weight:800}
+.tag.ok{background:#D6F7E2;color:#157A3A}.tag.no{background:#FFE3E3;color:#B42323}.tag.off{background:#E4EAF3;color:var(--muted)}
+.modal{position:fixed;inset:0;background:rgba(6,16,69,.65);z-index:50;display:grid;place-items:center;padding:16px;animation:fade .2s both;backdrop-filter:blur(4px)}
+@keyframes fade{from{opacity:0}}
+.sheet{background:#fff;border-radius:24px;padding:22px;width:100%;max-width:400px;text-align:center;animation:rise .3s both;max-height:92dvh;overflow:auto}
+.toasts{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 18px);display:grid;gap:8px;justify-items:center;z-index:99;pointer-events:none}
+.toast{background:var(--navy);color:#fff;padding:12px 18px;border-radius:14px;font-weight:700;box-shadow:var(--sh);animation:rise .3s both;max-width:92vw}
+.toast.err{background:var(--bad)}
+.banner{background:var(--sky);color:var(--navy);border-radius:16px;padding:12px 14px;font-weight:700;margin-bottom:14px;font-size:14px}
+.qrow{display:flex;align-items:center;gap:10px;padding:12px;background:var(--ice);border-radius:16px;margin-bottom:10px;flex-wrap:wrap}
+.sw{position:relative;width:46px;height:28px;border-radius:99px;background:#C7D6E8;cursor:pointer;transition:background .2s;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.sw.on{background:var(--sky)}.sw.on::after{transform:translateX(18px)}
+.resp{padding:14px;border-radius:18px;background:var(--ice);margin-bottom:10px}
+.score{display:inline-grid;place-items:center;min-width:44px;height:44px;border-radius:14px;background:var(--navy);color:#fff;font-weight:800;padding:0 8px}
+@media(min-width:900px){
+ .kpis{grid-template-columns:repeat(4,1fr)}
+ .grid2{grid-template-columns:1fr 1fr}
+ .span2{grid-column:1/-1}
+ .ad-main{padding:22px}
+}
+@media print{.ad-head,.toasts{display:none}}
+</style>
+</head>
+<body>
+<div id="root"><div class="splash"><img src="aqua.png" alt="Aquamare Hotel"></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+/* ============================================================
+   CONFIGURACIÓN — pega aquí los datos de tu proyecto Supabase
+   (Supabase > Project Settings > API). La anon key es pública.
+   Si lo dejas vacío, la app corre en MODO DEMO con datos locales.
+   ============================================================ */
+const CONFIG = {
+  SUPABASE_URL: '',
+  SUPABASE_ANON_KEY: '',
+};
+
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
+const sb = DEMO ? null : window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+/* ---------- utilidades ---------- */
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+const genCode = () => { const a = 'abcdefghjkmnpqrstuvwxyz23456789'; let s = ''; crypto.getRandomValues(new Uint8Array(8)).forEach(n => s += a[n % a.length]); return s; };
+const dayKey = (d) => { d = new Date(d); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const fmtDay = (k) => { const [y, m, d] = k.split('-'); return new Date(y, m - 1, d).toLocaleDateString('es', { day: '2-digit', month: 'short' }); };
+const fmtDateTime = (iso) => new Date(iso).toLocaleString('es', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const norm10 = (r) => r.rating * 10 / r.scale;
+const fmtScore = (v10, mode) => v10 == null ? '—' : mode === 'stars' ? (v10 / 2).toFixed(1) + ' ★' : v10.toFixed(1);
+const initials = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('');
+const PALETTE = ['#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#84CC16', '#6366F1', '#EAB308', '#06B6D4', '#D946EF', '#22C55E', '#FB7185'];
+const colorFor = (i) => i < PALETTE.length ? PALETTE[i] : `hsl(${(i * 47) % 360} 70% 50%)`;
+const DEFAULTS = { id: 1, business_name: 'Aquamare Hotel', main_question: '¿Cómo calificas el servicio de tu mesero?', rating_scale: 'stars', google_place_id: '', google_review_url: '', site_url: '', thanks_message: '¡Gracias por tu opinión! Nos ayuda a mejorar cada día.' };
+const baseUrl = (s) => { let u = (s && s.site_url) || (location.origin + location.pathname.replace(/[^/]*$/, '')); return u.endsWith('/') ? u : u + '/'; };
+const waiterUrl = (s, code) => baseUrl(s) + '?m=' + code;
+const googleUrl = (s) => s.google_review_url || (s.google_place_id ? 'https://search.google.com/local/writereview?placeid=' + encodeURIComponent(s.google_place_id) : '');
+const toast = (msg, type) => window.dispatchEvent(new CustomEvent('toast', { detail: { msg, type } }));
+const rangeStart = (r) => { if (r === 'all') return null; const d = new Date(); d.setHours(0, 0, 0, 0); if (r !== 'today') d.setDate(d.getDate() - (Number(r) - 1)); return d; };
+
+/* ---------- capa de datos (Supabase o demo local) ---------- */
+const ck = ({ data, error }) => { if (error) throw error; return data; };
+let demoMem = null;
+const demoLoad = () => {
+  if (demoMem) return demoMem;
+  try { const d = JSON.parse(localStorage.getItem('aq_demo_v1')); if (d) return demoMem = d; } catch (e) {}
+  const names = ['Carlos Pérez', 'María Gómez', 'Luis Rivera', 'Ana Torres', 'Jorge Díaz', 'Sofía Ramírez'];
+  const waiters = names.map((n, i) => ({ id: uid(), code: 'demo' + (i + 1), full_name: n, cedula: String(1000000 + i * 7919), nfc_serial: i < 3 ? '04:A2:' + i : null, active: true, created_at: new Date(Date.now() - 1e9 + i).toISOString() }));
+  const questions = [
+    { id: uid(), text: '¿La comida llegó a tiempo?', type: 'yesno', options: [], required: false, position: 1, active: true },
+    { id: uid(), text: '¿Qué fue lo que más te gustó?', type: 'choice', options: ['Atención', 'Comida', 'Ambiente', 'Rapidez'], required: false, position: 2, active: true },
+  ];
+  const responses = [];
+  for (let i = 0; i < 160; i++) {
+    const wi = Math.floor(Math.random() * Math.random() * waiters.length * 1.4) % waiters.length;
+    const t = new Date(Date.now() - Math.random() * 30 * 864e5); t.setHours(11 + Math.floor(Math.random() * 11), Math.floor(Math.random() * 60));
+    const base = 3.2 + (waiters.length - wi) * 0.25 + Math.random() * 1.3;
+    responses.push({ id: uid(), waiter_id: waiters[wi].id, rating: Math.max(1, Math.min(5, Math.round(base))), scale: 5, answers: {}, comment: Math.random() > .7 ? 'Muy buen servicio, gracias.' : null, created_at: t.toISOString() });
+  }
+  return demoMem = { settings: { ...DEFAULTS }, waiters, questions, responses };
+};
+const demoSave = () => { try { localStorage.setItem('aq_demo_v1', JSON.stringify(demoMem)); } catch (e) {} };
+const upsertLocal = (arr, row) => { const i = arr.findIndex(x => x.id === row.id); if (i >= 0) arr[i] = { ...arr[i], ...row }; else arr.push(row); demoSave(); return row; };
+
+const api = {
+  async getSettings() {
+    if (DEMO) return demoLoad().settings;
+    const d = ck(await sb.from('settings').select('*').eq('id', 1).maybeSingle());
+    return { ...DEFAULTS, ...(d || {}) };
+  },
+  async saveSettings(p) {
+    if (DEMO) { Object.assign(demoLoad().settings, p); demoSave(); return; }
+    ck(await sb.from('settings').upsert({ ...p, id: 1 }));
+  },
+  async listWaiters() {
+    if (DEMO) return [...demoLoad().waiters];
+    return ck(await sb.from('waiters').select('*').order('created_at'));
+  },
+  async getWaiterByCode(code) {
+    if (DEMO) return demoLoad().waiters.find(w => w.code === code) || null;
+    return ck(await sb.from('waiters').select('*').eq('code', code).maybeSingle());
+  },
+  async saveWaiter(w) {
+    if (DEMO) return upsertLocal(demoLoad().waiters, { created_at: new Date().toISOString(), ...w });
+    return ck(await sb.from('waiters').upsert(w).select().single());
+  },
+  async deleteWaiter(id) {
+    if (DEMO) { const d = demoLoad(); d.waiters = d.waiters.filter(x => x.id !== id); d.responses = d.responses.filter(x => x.waiter_id !== id); demoSave(); return; }
+    ck(await sb.from('waiters').delete().eq('id', id));
+  },
+  async listQuestions(onlyActive) {
+    if (DEMO) return demoLoad().questions.filter(q => !onlyActive || q.active).sort((a, b) => a.position - b.position);
+    let q = sb.from('questions').select('*').order('position');
+    if (onlyActive) q = q.eq('active', true);
+    return ck(await q);
+  },
+  async saveQuestion(q) {
+    if (DEMO) return upsertLocal(demoLoad().questions, q);
+    return ck(await sb.from('questions').upsert(q).select().single());
+  },
+  async deleteQuestion(id) {
+    if (DEMO) { const d = demoLoad(); d.questions = d.questions.filter(x => x.id !== id); demoSave(); return; }
+    ck(await sb.from('questions').delete().eq('id', id));
+  },
+  async listResponses(since) {
+    if (DEMO) return demoLoad().responses.filter(r => !since || new Date(r.created_at) >= since).sort((a, b) => b.created_at.localeCompare(a.created_at));
+    const out = []; // Supabase devuelve máx. 1000 filas por llamada: paginamos
+    for (let from = 0; ; from += 1000) {
+      let q = sb.from('responses').select('*').order('created_at', { ascending: false }).range(from, from + 999);
+      if (since) q = q.gte('created_at', since.toISOString());
+      const rows = ck(await q);
+      out.push(...rows);
+      if (rows.length < 1000) break;
+    }
+    return out;
+  },
+  async addResponse(r) {
+    if (DEMO) { upsertLocal(demoLoad().responses, { ...r, id: uid(), created_at: new Date().toISOString() }); return; }
+    ck(await sb.from('responses').insert(r));
+  },
+  async deleteResponse(id) {
+    if (DEMO) { const d = demoLoad(); d.responses = d.responses.filter(x => x.id !== id); demoSave(); return; }
+    ck(await sb.from('responses').delete().eq('id', id));
+  },
+};
+
+/* ---------- NFC (Web NFC: solo Chrome en Android) ---------- */
+async function writeNfcTag(url) {
+  if (!('NDEFReader' in window)) throw new Error('unsupported');
+  const ndef = new NDEFReader();
+  const ctrl = new AbortController();
+  await ndef.scan({ signal: ctrl.signal });
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => { ctrl.abort(); reject(new Error('Tiempo agotado. Acerca el TAG e inténtalo de nuevo.')); }, 30000);
+    ndef.onreadingerror = () => { clearTimeout(t); ctrl.abort(); reject(new Error('No se pudo leer el TAG.')); };
+    ndef.onreading = async (ev) => {
+      try {
+        await ndef.write({ records: [{ recordType: 'url', data: url }] });
+        clearTimeout(t); ctrl.abort(); resolve(ev.serialNumber || 'nfc');
+      } catch (e) { clearTimeout(t); ctrl.abort(); reject(e); }
+    };
+  });
+}
+
+/* ---------- UI base ---------- */
+const P = {
+  star: 'M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 17.8 5.8 21.1 7 14.2 2 9.3l6.9-1z',
+  chart: 'M4 20V10m6 10V4m6 16v-7m6 7H2',
+  users: 'M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M10 11a4 4 0 100-8 4 4 0 000 8zm13 10v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8',
+  list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+  chat: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
+  gear: 'M12 15a3 3 0 100-6 3 3 0 000 6zm7.4-3a7.4 7.4 0 00-.1-1.3l2-1.5-2-3.4-2.3.9a7 7 0 00-2.2-1.3L14.4 3h-4l-.4 2.4a7 7 0 00-2.2 1.3l-2.3-.9-2 3.4 2 1.5a7.4 7.4 0 000 2.6l-2 1.5 2 3.4 2.3-.9a7 7 0 002.2 1.3l.4 2.4h4l.4-2.4a7 7 0 002.2-1.3l2.3.9 2-3.4-2-1.5c.1-.4.1-.9.1-1.3z',
+  plus: 'M12 5v14M5 12h14', qr: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM20 14v3M14 20h3m3 0v1',
+  nfc: 'M6 8.3a6 6 0 010 7.4M10 5.6a10 10 0 010 12.8M14 3a14 14 0 010 18',
+  trash: 'M3 6h18M8 6V4h8v2m-9 0l1 14h8l1-14', edit: 'M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z',
+  up: 'M12 19V5m-6 6l6-6 6 6', down: 'M12 5v14m6-6l-6 6-6-6', x: 'M18 6L6 18M6 6l12 12', dl: 'M12 3v12m-5-5l5 5 5-5M4 21h16', refresh: 'M21 12a9 9 0 11-3-6.7L21 8m0-5v5h-5',
+};
+const Ico = ({ n, fill }) => <svg className="ico" viewBox="0 0 24 24" fill={fill ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={P[n]} /></svg>;
+
+function Btn({ kind = '', icon, children, ...p }) {
+  return <button {...p} className={'btn ' + kind + ' ' + (p.className || '')}>{icon && <Ico n={icon} />}{children}</button>;
+}
+function Confirm({ label, sure, onYes, icon = 'trash', kind = 'ghost' }) {
+  const [ask, setAsk] = useState(false);
+  useEffect(() => { if (!ask) return; const t = setTimeout(() => setAsk(false), 3500); return () => clearTimeout(t); }, [ask]);
+  return ask ? <Btn kind="danger" className="sm" onClick={() => { setAsk(false); onYes(); }}>{sure}</Btn>
+    : <Btn kind={kind} className="sm" icon={icon} onClick={() => setAsk(true)}>{label}</Btn>;
+}
+function Switch({ on, onChange }) { return <div className={'sw' + (on ? ' on' : '')} role="switch" aria-checked={on} onClick={() => onChange(!on)} />; }
+function Modal({ onClose, children }) { return <div className="modal" onClick={onClose}><div className="sheet" onClick={e => e.stopPropagation()}>{children}</div></div>; }
+function Toasts() {
+  const [list, setList] = useState([]);
+  useEffect(() => {
+    const h = (e) => { const id = uid(); setList(l => [...l, { id, ...e.detail }]); setTimeout(() => setList(l => l.filter(x => x.id !== id)), 3200); };
+    window.addEventListener('toast', h); return () => window.removeEventListener('toast', h);
+  }, []);
+  return <div className="toasts">{list.map(t => <div key={t.id} className={'toast ' + (t.type || '')}>{t.msg}</div>)}</div>;
+}
+function QR({ text, size }) {
+  const svg = useMemo(() => { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }).replace(/fill="black"/g, 'fill="#061045"'); }, [text]);
+  return <div className="qr" style={size ? { width: size, height: size } : null} dangerouslySetInnerHTML={{ __html: svg }} />;
+}
+function downloadQR(waiter, url, business) {
+  const q = qrcode(0, 'M'); q.addData(url); q.make();
+  const n = q.getModuleCount(), cell = Math.floor(760 / n), qs = cell * n;
+  const c = document.createElement('canvas'); c.width = 900; c.height = 1180;
+  const g = c.getContext('2d');
+  g.fillStyle = '#061045'; g.fillRect(0, 0, 900, 1180);
+  g.fillStyle = '#fff'; g.beginPath(); g.roundRect(60, 190, 780, 780, 36); g.fill();
+  g.fillStyle = '#061045';
+  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect(70 + (760 - qs) / 2 + k * cell, 200 + (760 - qs) / 2 + r * cell, cell, cell);
+  g.textAlign = 'center'; g.fillStyle = '#fff';
+  g.font = '700 54px system-ui,sans-serif'; g.fillText(business, 450, 110);
+  g.fillStyle = '#4CC9F0'; g.font = '700 40px system-ui,sans-serif'; g.fillText('Escanea y califica tu experiencia', 450, 1040);
+  g.fillStyle = '#fff'; g.font = '800 46px system-ui,sans-serif'; g.fillText('Te atendió: ' + waiter.full_name, 450, 1110);
+  const a = document.createElement('a'); a.download = 'QR-' + waiter.full_name.replace(/\s+/g, '_') + '.png'; a.href = c.toDataURL('image/png'); a.click();
+}
+
+/* ---------- gráficas (Chart.js) ---------- */
+if (window.Chart) {
+  Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+  Chart.defaults.font.weight = '600';
+  Chart.defaults.color = '#5B7399';
+  Chart.defaults.animation.duration = 900;
+}
+function ChartBox({ type, data, options, height = 280, plugins }) {
+  const ref = useRef(), inst = useRef();
+  const sig = JSON.stringify(data) + JSON.stringify(options);
+  useEffect(() => {
+    inst.current && inst.current.destroy();
+    inst.current = new Chart(ref.current, { type, data, options: { maintainAspectRatio: false, responsive: true, ...options }, plugins: plugins || [] });
+    return () => inst.current && inst.current.destroy();
+  }, [type, sig]);
+  return <div className="chartbox" style={{ height }}><canvas ref={ref} /></div>;
+}
+const valueLabels = {
+  id: 'valueLabels',
+  afterDatasetsDraw(c) {
+    const { ctx } = c, ds = c.data.datasets[0], meta = c.getDatasetMeta(0);
+    ctx.save(); ctx.font = '800 12px system-ui'; ctx.fillStyle = '#061045'; ctx.textBaseline = 'middle';
+    meta.data.forEach((b, i) => ctx.fillText(ds.labelsText ? ds.labelsText[i] : ds.data[i], b.x + 8, b.y));
+    ctx.restore();
+  },
+};
+
+/* ============================================================
+   ENCUESTA DEL CLIENTE
+   ============================================================ */
+function RatingInput({ mode, value, onChange }) {
+  const [popped, setPopped] = useState(0);
+  const labels = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
+  const pick = (v) => { setPopped(v); onChange(v); };
+  if (mode === 'stars') return (
+    <div>
+      <div className="stars">
+        {[1, 2, 3, 4, 5].map(i => (
+          <button key={i} className={'star' + (i <= value ? ' on' : '') + (i === popped ? ' pop' : '')} onClick={() => pick(i)} aria-label={i + ' estrellas'}>
+            <svg viewBox="0 0 24 24"><path d={P.star} /></svg>
+          </button>
+        ))}
+      </div>
+      <div className="hint">{labels[value] || 'Toca una estrella'}</div>
+    </div>
+  );
+  return (
+    <div>
+      <div className="nums">{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => <button key={i} className={'num' + (i === value ? ' on' : '')} onClick={() => pick(i)}>{i}</button>)}</div>
+      <div className="hint">{value ? (value <= 4 ? 'Podemos mejorar' : value <= 7 ? 'Bien' : value <= 9 ? 'Muy bien' : '¡Excelente!') : '1 = muy malo · 10 = excelente'}</div>
+    </div>
+  );
+}
+
+function Survey({ code }) {
+  const [boot, setBoot] = useState({ status: 'loading' });
+  const [step, setStep] = useState(0);
+  const [rating, setRating] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [comment, setComment] = useState('');
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [settings, waiter, questions] = await Promise.all([api.getSettings(), api.getWaiterByCode(code), api.listQuestions(true)]);
+        setBoot(!waiter || !waiter.active ? { status: 'notfound', settings } : { status: 'ok', settings, waiter, questions });
+      } catch (e) { setBoot({ status: 'error', msg: e.message }); }
+    })();
+  }, [code]);
+
+  if (boot.status === 'loading') return <div className="splash"><img src="aqua.png" alt="" /></div>;
+  const { settings, waiter, questions } = boot;
+  const frame = (children) => (
+    <div className="sv"><div className="sv-in">
+      <img className="sv-logo" src="aqua.png" alt={settings ? settings.business_name : ''} />
+      {children}
+    </div></div>
+  );
+  if (boot.status === 'error') return frame(<div className="card"><div className="q">No se pudo cargar</div><p className="muted">{boot.msg}</p></div>);
+  if (boot.status === 'notfound') return frame(<div className="card"><div className="q">TAG o QR no válido</div><p className="muted">No encontramos a ese mesero. Pídele a tu mesero que te muestre su QR de nuevo.</p><a className="btn sky block" style={{ marginTop: 16 }} href="./">Elegir mesero</a></div>);
+
+  const mode = settings.rating_scale, max = mode === 'ten' ? 10 : 5;
+  const steps = [{ k: 'main' }, ...questions.map(q => ({ k: q.id, q })), { k: 'comment' }];
+  const cur = steps[step], last = step === steps.length - 1;
+  const ans = (id) => answers[id] ? answers[id].v : undefined;
+  const setAns = (q, v) => setAnswers(a => ({ ...a, [q.id]: { q: q.text, v } }));
+  const answered = cur.k === 'main' ? rating > 0 : cur.k === 'comment' ? true : ans(cur.q.id) !== undefined && ans(cur.q.id) !== '';
+  const canNext = cur.k === 'main' ? rating > 0 : cur.k === 'comment' ? true : (!cur.q.required || answered);
+  const next = () => setStep(s => Math.min(s + 1, steps.length - 1));
+  const auto = () => setTimeout(next, 380);
+
+  const submit = async () => {
+    setSending(true); setErr('');
+    try { await api.addResponse({ waiter_id: waiter.id, rating, scale: max, answers, comment: comment.trim() || null }); setDone(true); }
+    catch (e) { setErr('No se pudo enviar: ' + e.message); }
+    setSending(false);
+  };
+
+  if (done) {
+    const gurl = googleUrl(settings);
+    const openGoogle = () => { if (comment.trim() && navigator.clipboard) navigator.clipboard.writeText(comment.trim()).catch(() => {}); };
+    return frame(
+      <div>
+        <div className="card done">
+          <div className="check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></div>
+          <div className="q" style={{ marginBottom: 8 }}>¡Gracias!</div>
+          <p className="muted">{settings.thanks_message}</p>
+        </div>
+        {gurl && (
+          <div className="g-card">
+            <div className="gs">{[0, 1, 2, 3, 4].map(i => <svg key={i} viewBox="0 0 24 24" style={{ animationDelay: (0.3 + i * 0.1) + 's' }}><path d={P.star} /></svg>)}</div>
+            <h3 style={{ fontSize: 20 }}>¿Nos regalas una reseña en Google?</h3>
+            <p>Solo toma 10 segundos y nos ayuda muchísimo.</p>
+            <a className="btn sky block pulse" href={gurl} target="_blank" rel="noopener" onClick={openGoogle}>Escribir reseña en Google</a>
+            {comment.trim() && <div className="mini">Copiamos tu comentario: solo pégalo en Google.</div>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return frame(
+    <div>
+      <div className="who"><div className="avatar">{initials(waiter.full_name)}</div><div><div style={{ opacity: .75, fontSize: 13 }}>Te atendió</div><div style={{ fontWeight: 800, fontSize: 18 }}>{waiter.full_name}</div></div></div>
+      <div className="prog"><i style={{ width: ((step + 1) / steps.length * 100) + '%' }} /></div>
+      <div className="card"><div className="step" key={cur.k}>
+        {cur.k === 'main' && <>
+          <div className="q">{settings.main_question}</div>
+          <RatingInput mode={mode} value={rating} onChange={(v) => { setRating(v); auto(); }} />
+        </>}
+        {cur.q && <>
+          <div className="q">{cur.q.text}{!cur.q.required && <span className="muted" style={{ fontSize: 13, fontWeight: 600 }}> (opcional)</span>}</div>
+          {cur.q.type === 'rating' && <RatingInput mode={mode} value={ans(cur.q.id) || 0} onChange={(v) => { setAns(cur.q, v); auto(); }} />}
+          {cur.q.type === 'yesno' && <div className="opts">{['Sí', 'No'].map(o => <button key={o} className={'opt' + (ans(cur.q.id) === o ? ' on' : '')} onClick={() => { setAns(cur.q, o); auto(); }}>{o}</button>)}</div>}
+          {cur.q.type === 'choice' && <div className="opts">{(cur.q.options || []).map(o => <button key={o} className={'opt' + (ans(cur.q.id) === o ? ' on' : '')} onClick={() => { setAns(cur.q, o); auto(); }}>{o}</button>)}</div>}
+          {cur.q.type === 'text' && <textarea className="inp" placeholder="Escribe aquí…" value={ans(cur.q.id) || ''} onChange={e => setAns(cur.q, e.target.value)} />}
+        </>}
+        {cur.k === 'comment' && <>
+          <div className="q">¿Algo más que quieras contarnos? <span className="muted" style={{ fontSize: 13, fontWeight: 600 }}>(opcional)</span></div>
+          <textarea className="inp" placeholder="Tu comentario…" value={comment} onChange={e => setComment(e.target.value)} />
+        </>}
+        {err && <p style={{ color: 'var(--bad)', fontWeight: 700, marginTop: 12 }}>{err}</p>}
+        <div className="nav">
+          {step > 0 && <Btn kind="ghost" onClick={() => setStep(step - 1)}>Atrás</Btn>}
+          <Btn kind="sky" className="grow" disabled={!canNext || sending || (last && !rating)} onClick={last ? submit : next}>
+            {last ? (sending ? 'Enviando…' : 'Enviar encuesta') : (cur.k !== 'main' && !answered ? 'Omitir' : 'Siguiente')}
+          </Btn>
+        </div>
+      </div></div>
+    </div>
+  );
+}
+
+/* ---------- inicio sin QR: elegir mesero ---------- */
+function Home() {
+  const [s, setS] = useState(null), [ws, setWs] = useState(null);
+  useEffect(() => { Promise.all([api.getSettings(), api.listWaiters()]).then(([a, b]) => { setS(a); setWs(b.filter(w => w.active)); }).catch(e => setWs(e)); }, []);
+  if (!ws) return <div className="splash"><img src="aqua.png" alt="" /></div>;
+  return (
+    <div className="sv"><div className="sv-in">
+      <img className="sv-logo" src="aqua.png" alt="" />
+      <div className="card">
+        <div className="q">¿Quién te atendió hoy?</div>
+        <p className="muted">Escanea el QR o acerca tu celular al TAG de tu mesero. También puedes elegirlo aquí:</p>
+        <div className="pick">
+          {Array.isArray(ws) ? ws.map(w => <a key={w.id} className="btn ghost" style={{ justifyContent: 'flex-start' }} href={'?m=' + w.code}><span className="avatar" style={{ width: 34, height: 34, fontSize: 14 }}>{initials(w.full_name)}</span>{w.full_name}</a>) : <p>Error al cargar.</p>}
+          {Array.isArray(ws) && !ws.length && <p className="muted">Aún no hay meseros registrados.</p>}
+        </div>
+      </div>
+      <div className="foot"><a href="#/admin">Administración</a></div>
+    </div></div>
+  );
+}
+
+/* ============================================================
+   ADMIN
+   ============================================================ */
+function Podium({ ranked, colorOf, metric, mode }) {
+  const top = ranked.filter(s => s.n > 0).slice(0, 3);
+  if (!top.length) return null;
+  const order = [top[1], top[0], top[2]].filter(Boolean);
+  const heights = { 0: 100, 1: 150, 2: 72 };
+  return (
+    <div className="podium">
+      {order.map(s => {
+        const pos = top.indexOf(s);
+        return (
+          <div className="pod" key={s.w.id}>
+            <div className="nm">{['🥇', '🥈', '🥉'][pos]} {s.w.full_name.split(' ')[0]}</div>
+            <div className="bar" style={{ height: heights[pos] + 'px', background: colorOf(s.w.id), animationDelay: pos * 0.15 + 's' }}>{metric === 'n' ? s.n : fmtScore(s.avg, mode)}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Dashboard({ waiters, responses, settings, range }) {
+  const mode = settings.rating_scale;
+  const [metric, setMetric] = useState('n');
+  const colorOf = useMemo(() => { const m = {}; waiters.forEach((w, i) => m[w.id] = colorFor(i)); return (id) => m[id] || '#999'; }, [waiters]);
+
+  const stats = useMemo(() => {
+    const m = new Map(waiters.map(w => [w.id, { w, n: 0, sum: 0, pos: 0, last: null }]));
+    responses.forEach(r => { const s = m.get(r.waiter_id); if (!s) return; const v = norm10(r); s.n++; s.sum += v; if (v >= 8) s.pos++; if (!s.last || r.created_at > s.last) s.last = r.created_at; });
+    return [...m.values()].map(s => ({ ...s, avg: s.n ? s.sum / s.n : null, posPct: s.n ? Math.round(s.pos * 100 / s.n) : null }));
+  }, [waiters, responses]);
+  const ranked = useMemo(() => [...stats].sort(metric === 'n' ? (a, b) => b.n - a.n || (b.avg || 0) - (a.avg || 0) : (a, b) => (b.avg || 0) - (a.avg || 0) || b.n - a.n), [stats, metric]);
+
+  const { days, byDay } = useMemo(() => {
+    const byDay = {};
+    responses.forEach(r => { const k = dayKey(r.created_at); const o = byDay[k] || (byDay[k] = { total: 0, sum: 0 }); o[r.waiter_id] = (o[r.waiter_id] || 0) + 1; o.total++; o.sum += norm10(r); });
+    if (!responses.length) return { days: [], byDay };
+    const start = range === 'all' ? new Date(responses.reduce((m, r) => Math.min(m, +new Date(r.created_at)), Infinity)) : rangeStart(range);
+    start.setHours(0, 0, 0, 0);
+    const days = []; for (let d = new Date(start); d <= new Date(); d.setDate(d.getDate() + 1)) days.push(dayKey(d));
+    return { days, byDay };
+  }, [responses, range]);
+
+  const total = responses.length;
+  const avg = total ? responses.reduce((s, r) => s + norm10(r), 0) / total : null;
+  const today = (byDay[dayKey(new Date())] || {}).total || 0;
+  const best = ranked[0] && ranked[0].n ? ranked[0].w.full_name : '—';
+  const dist = [0, 0, 0, 0, 0];
+  responses.forEach(r => { const v = norm10(r); dist[v <= 2 ? 0 : v <= 4 ? 1 : v <= 6 ? 2 : v <= 8 ? 3 : 4]++; });
+  const grid = { color: '#EAF6FF' };
+  const conv = (v) => v == null ? null : mode === 'stars' ? +(v / 2).toFixed(2) : +v.toFixed(2);
+
+  if (!total) return <div className="card"><div className="h2">Aún no hay encuestas en este periodo</div><p className="muted">Cuando los clientes respondan aparecerán aquí las gráficas y el ranking.</p></div>;
+
+  return (
+    <div className="stack">
+      <div className="kpis">
+        <div className="kpi"><small>Encuestas</small><b>{total}</b></div>
+        <div className="kpi"><small>Promedio general</small><b>{fmtScore(avg, mode)}</b></div>
+        <div className="kpi"><small>Hoy</small><b>{today}</b></div>
+        <div className="kpi"><small>Líder del ranking</small><b style={{ fontSize: 18 }}>{best}</b></div>
+      </div>
+
+      <div className="grid2">
+        <div className="card span2">
+          <div className="h2">Encuestas por día (por mesero)</div>
+          <ChartBox type="bar" height={300} data={{ labels: days.map(fmtDay), datasets: stats.filter(s => s.n).map(s => ({ label: s.w.full_name, data: days.map(d => (byDay[d] || {})[s.w.id] || 0), backgroundColor: colorOf(s.w.id), borderWidth: 0, borderRadius: 4 })) }}
+            options={{ plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } }, scales: { x: { stacked: true, grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true } }, y: { stacked: true, grid, border: { display: false }, ticks: { precision: 0 } } } }} />
+        </div>
+
+        <div className="card span2">
+          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+            <div className="h2" style={{ margin: 0 }}>🏆 Ranking de meseros</div>
+            <div className="row">
+              <button className={'chip' + (metric === 'n' ? ' on' : '')} onClick={() => setMetric('n')}>Más encuestas</button>
+              <button className={'chip' + (metric === 'avg' ? ' on' : '')} onClick={() => setMetric('avg')}>Mejor promedio</button>
+            </div>
+          </div>
+          <Podium ranked={ranked} colorOf={colorOf} metric={metric} mode={mode} />
+          <ChartBox type="bar" height={Math.max(180, ranked.length * 38 + 30)} plugins={[valueLabels]}
+            data={{ labels: ranked.map(s => s.w.full_name), datasets: [{ data: ranked.map(s => metric === 'n' ? s.n : conv(s.avg) || 0), labelsText: ranked.map(s => metric === 'n' ? String(s.n) : fmtScore(s.avg, mode)), backgroundColor: ranked.map(s => colorOf(s.w.id)), borderWidth: 0, borderRadius: 10 }] }}
+            options={{ indexAxis: 'y', layout: { padding: { right: 56 } }, plugins: { legend: { display: false } }, scales: { x: { grid, border: { display: false }, beginAtZero: true, max: metric === 'avg' ? (mode === 'stars' ? 5 : 10) : undefined, ticks: { precision: 0 } }, y: { grid: { display: false } } } }} />
+        </div>
+
+        <div className="card">
+          <div className="h2">Tendencia del promedio diario</div>
+          <ChartBox type="line" data={{ labels: days.map(fmtDay), datasets: [{ data: days.map(d => byDay[d] ? conv(byDay[d].sum / byDay[d].total) : null), borderColor: '#0EA5E9', backgroundColor: 'rgba(76,201,240,.25)', fill: true, tension: .35, spanGaps: true, pointBackgroundColor: '#F59E0B', pointBorderWidth: 0, pointRadius: 4, borderWidth: 3 }] }}
+            options={{ plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true } }, y: { grid, border: { display: false }, min: 1, max: mode === 'stars' ? 5 : 10 } } }} />
+        </div>
+
+        <div className="card">
+          <div className="h2">Distribución de calificaciones</div>
+          <ChartBox type="doughnut" data={{ labels: ['Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'], datasets: [{ data: dist, backgroundColor: ['#EF4444', '#F97316', '#FACC15', '#22C55E', '#0EA5E9'], borderWidth: 3, borderColor: '#fff' }] }}
+            options={{ cutout: '62%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } } }} />
+        </div>
+
+        <div className="card span2">
+          <div className="h2">Consolidado por mesero</div>
+          <div className="scroll-x"><table className="tbl">
+            <thead><tr><th>#</th><th>Mesero</th><th>Encuestas</th><th>Promedio</th><th>% positivas</th><th>Última</th></tr></thead>
+            <tbody>{ranked.map((s, i) => (
+              <tr key={s.w.id}><td><b>{i + 1}</b></td><td><span className="dot" style={{ background: colorOf(s.w.id) }} />{s.w.full_name}{!s.w.active && <span className="tag off" style={{ marginLeft: 6 }}>inactivo</span>}</td><td><b>{s.n}</b></td><td>{fmtScore(s.avg, mode)}</td><td>{s.posPct == null ? '—' : s.posPct + '%'}</td><td>{s.last ? fmtDateTime(s.last) : '—'}</td></tr>
+            ))}</tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Waiters({ waiters, settings, responses, reload }) {
+  const blank = () => ({ id: uid(), code: genCode(), full_name: '', cedula: '', nfc_serial: null, active: true });
+  const [form, setForm] = useState(blank());
+  const [editing, setEditing] = useState(false);
+  const [nfc, setNfc] = useState({ s: 'idle', msg: '' });
+  const [show, setShow] = useState(null);
+  const url = (w) => waiterUrl(settings, w.code);
+  const counts = useMemo(() => { const m = {}; responses.forEach(r => m[r.waiter_id] = (m[r.waiter_id] || 0) + 1); return m; }, [responses]);
+
+  const assignNfc = async (w, onSerial) => {
+    setNfc({ s: 'scan', msg: 'Acerca el TAG NFC a la parte trasera del celular…', id: w.id });
+    try { const serial = await writeNfcTag(url(w)); onSerial(serial); setNfc({ s: 'ok', msg: 'TAG programado ✔', id: w.id }); toast('TAG NFC programado'); }
+    catch (e) {
+      if (e.message === 'unsupported') setNfc({ s: 'unsup', msg: 'Este dispositivo no puede escribir NFC desde el navegador (iPhone / PC). Usa un Android con Chrome, o graba la URL con la app “NFC Tools”.', id: w.id });
+      else setNfc({ s: 'err', msg: e.message, id: w.id });
+    }
+  };
+  const save = async () => {
+    if (!form.full_name.trim() || !form.cedula.trim()) return toast('Escribe nombre completo y cédula', 'err');
+    try { await api.saveWaiter({ ...form, full_name: form.full_name.trim(), cedula: form.cedula.trim() }); toast(editing ? 'Mesero actualizado' : 'Mesero creado'); setShow({ ...form }); setForm(blank()); setEditing(false); setNfc({ s: 'idle', msg: '' }); reload(); }
+    catch (e) { toast(e.message, 'err'); }
+  };
+  const patch = async (w, p) => { try { await api.saveWaiter({ ...w, ...p }); reload(); } catch (e) { toast(e.message, 'err'); } };
+  const draft = form.full_name.trim() ? form : null;
+
+  return (
+    <div className="grid2">
+      <div className="card">
+        <div className="h2">{editing ? 'Editar mesero' : 'Nuevo mesero'}</div>
+        <div className="field"><label>Nombre completo</label><input className="inp" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} placeholder="Ej: Carlos Pérez" autoComplete="off" /></div>
+        <div className="field"><label>Cédula</label><input className="inp" inputMode="numeric" value={form.cedula} onChange={e => setForm({ ...form, cedula: e.target.value })} placeholder="Número de cédula" autoComplete="off" /></div>
+        <div className="field"><label>TAG NFC</label>
+          <Btn kind={form.nfc_serial ? 'ghost' : 'sky'} icon="nfc" onClick={() => assignNfc(form, (s) => setForm(f => ({ ...f, nfc_serial: s })))}>{form.nfc_serial ? 'TAG asignado · reasignar' : 'Asignar TAG NFC'}</Btn>
+          {nfc.id === form.id && nfc.msg && <p className="muted" style={{ fontSize: 13 }}>{nfc.msg}</p>}
+          {nfc.id === form.id && nfc.s === 'unsup' && <div className="row"><Btn kind="ghost" className="sm" onClick={() => { navigator.clipboard && navigator.clipboard.writeText(url(form)); toast('URL copiada'); }}>Copiar URL del TAG</Btn><Btn kind="ghost" className="sm" onClick={() => { setForm({ ...form, nfc_serial: 'manual' }); setNfc({ s: 'ok', msg: 'Marcado como asignado' }); }}>Marcar como asignado</Btn></div>}
+        </div>
+        <div className="field"><label>QR (se genera automáticamente)</label>
+          {draft ? <div className="row"><QR text={url(form)} size={130} /><span className="muted" style={{ fontSize: 12, wordBreak: 'break-all', flex: 1 }}>{url(form)}</span></div> : <p className="muted" style={{ fontSize: 13 }}>Escribe el nombre para generar el QR.</p>}
+        </div>
+        <div className="row">
+          <Btn kind="sky" icon="plus" className="grow" onClick={save}>{editing ? 'Guardar cambios' : 'Crear mesero'}</Btn>
+          {editing && <Btn kind="ghost" onClick={() => { setForm(blank()); setEditing(false); }}>Cancelar</Btn>}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="h2">Meseros ({waiters.length})</div>
+        <div className="stack">
+          {waiters.map((w, i) => (
+            <div className="wcard" key={w.id}>
+              <div className="qr" style={{ cursor: 'pointer' }} onClick={() => setShow(w)}><QR text={url(w)} /></div>
+              <div className="grow" style={{ minWidth: 150 }}>
+                <div style={{ fontWeight: 800 }}><span className="dot" style={{ background: colorFor(i) }} />{w.full_name}</div>
+                <div className="muted" style={{ fontSize: 13 }}>CC {w.cedula} · {counts[w.id] || 0} encuestas</div>
+                <div className="row" style={{ marginTop: 6, gap: 6 }}>
+                  <span className={'tag ' + (w.nfc_serial ? 'ok' : 'no')}>{w.nfc_serial ? 'NFC listo' : 'Sin NFC'}</span>
+                  {!w.active && <span className="tag off">Inactivo</span>}
+                </div>
+                {nfc.id === w.id && nfc.msg && <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>{nfc.msg}</p>}
+              </div>
+              <div className="row" style={{ gap: 6 }}>
+                <Btn kind="white" className="sm" icon="qr" onClick={() => setShow(w)}>QR</Btn>
+                <Btn kind="white" className="sm" icon="nfc" onClick={() => assignNfc(w, (s) => patch(w, { nfc_serial: s }))}>NFC</Btn>
+                <Btn kind="white" className="sm" icon="edit" onClick={() => { setForm({ ...w }); setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Editar</Btn>
+                <Btn kind="white" className="sm" onClick={() => patch(w, { active: !w.active })}>{w.active ? 'Desactivar' : 'Activar'}</Btn>
+                <Confirm label="Borrar" sure="Borra también sus encuestas" onYes={async () => { try { await api.deleteWaiter(w.id); reload(); } catch (e) { toast(e.message, 'err'); } }} />
+              </div>
+            </div>
+          ))}
+          {!waiters.length && <p className="muted">Crea tu primer mesero con el formulario.</p>}
+        </div>
+      </div>
+
+      {show && (
+        <Modal onClose={() => setShow(null)}>
+          <div className="h2">{show.full_name}</div>
+          <div style={{ width: 240, margin: '0 auto 12px' }}><QR text={url(show)} /></div>
+          <p className="muted" style={{ fontSize: 12, wordBreak: 'break-all', marginBottom: 14 }}>{url(show)}</p>
+          <div className="row" style={{ justifyContent: 'center' }}>
+            <Btn kind="sky" icon="dl" onClick={() => downloadQR(show, url(show), settings.business_name)}>Descargar QR</Btn>
+            <Btn kind="ghost" onClick={() => setShow(null)}>Cerrar</Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Questions({ questions, settings, reload }) {
+  const blank = { id: null, text: '', type: 'rating', optionsText: '', required: false };
+  const [f, setF] = useState(blank);
+  const types = { rating: 'Calificación', yesno: 'Sí / No', choice: 'Opción múltiple', text: 'Texto libre' };
+  const save = async () => {
+    if (!f.text.trim()) return toast('Escribe la pregunta', 'err');
+    const options = f.type === 'choice' ? f.optionsText.split('\n').map(x => x.trim()).filter(Boolean) : [];
+    if (f.type === 'choice' && options.length < 2) return toast('Agrega al menos 2 opciones (una por línea)', 'err');
+    try {
+      const pos = f.id ? (questions.find(q => q.id === f.id) || {}).position : (questions.reduce((m, q) => Math.max(m, q.position), 0) + 1);
+      await api.saveQuestion({ id: f.id || uid(), text: f.text.trim(), type: f.type, options, required: f.required, position: pos, active: f.id ? (questions.find(q => q.id === f.id) || {}).active : true });
+      setF(blank); toast('Pregunta guardada'); reload();
+    } catch (e) { toast(e.message, 'err'); }
+  };
+  const move = async (i, d) => {
+    const a = questions[i], b = questions[i + d]; if (!b) return;
+    try { await api.saveQuestion({ ...a, position: b.position === a.position ? a.position + d : b.position }); await api.saveQuestion({ ...b, position: a.position === b.position ? b.position - d : a.position }); reload(); } catch (e) { toast(e.message, 'err'); }
+  };
+  return (
+    <div className="grid2">
+      <div className="card">
+        <div className="h2">{f.id ? 'Editar pregunta' : 'Nueva pregunta'}</div>
+        <div className="field"><label>Pregunta</label><input className="inp" value={f.text} onChange={e => setF({ ...f, text: e.target.value })} placeholder="Ej: ¿La comida llegó caliente?" /></div>
+        <div className="field"><label>Tipo de respuesta</label>
+          <select className="inp" value={f.type} onChange={e => setF({ ...f, type: e.target.value })}>{Object.entries(types).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+        </div>
+        {f.type === 'rating' && <p className="muted" style={{ fontSize: 13, marginBottom: 14 }}>Usa la escala configurada: {settings.rating_scale === 'ten' ? '1 a 10' : '1 a 5 estrellas'}.</p>}
+        {f.type === 'choice' && <div className="field"><label>Opciones (una por línea)</label><textarea className="inp" value={f.optionsText} onChange={e => setF({ ...f, optionsText: e.target.value })} placeholder={'Excelente\nBueno\nMalo'} /></div>}
+        <div className="row" style={{ marginBottom: 16 }}><Switch on={f.required} onChange={v => setF({ ...f, required: v })} /><span style={{ fontWeight: 700 }}>Respuesta obligatoria</span></div>
+        <div className="row"><Btn kind="sky" icon="plus" className="grow" onClick={save}>{f.id ? 'Guardar cambios' : 'Agregar pregunta'}</Btn>{f.id && <Btn kind="ghost" onClick={() => setF(blank)}>Cancelar</Btn>}</div>
+      </div>
+      <div className="card">
+        <div className="h2">Preguntas de la encuesta</div>
+        <div className="qrow" style={{ background: 'var(--navy)', color: '#fff' }}><div className="grow"><b>{settings.main_question}</b><div style={{ fontSize: 12, opacity: .75 }}>Pregunta principal · calificación del mesero (fija, se cambia en Ajustes)</div></div></div>
+        {questions.map((q, i) => (
+          <div className="qrow" key={q.id} style={{ opacity: q.active ? 1 : .55 }}>
+            <div className="grow" style={{ minWidth: 150 }}><b>{q.text}</b><div className="muted" style={{ fontSize: 12 }}>{types[q.type]}{q.required ? ' · obligatoria' : ''}{q.type === 'choice' ? ' · ' + q.options.join(', ') : ''}</div></div>
+            <Switch on={q.active} onChange={async v => { try { await api.saveQuestion({ ...q, active: v }); reload(); } catch (e) { toast(e.message, 'err'); } }} />
+            <Btn kind="white" className="sm" onClick={() => move(i, -1)} disabled={i === 0}><Ico n="up" /></Btn>
+            <Btn kind="white" className="sm" onClick={() => move(i, 1)} disabled={i === questions.length - 1}><Ico n="down" /></Btn>
+            <Btn kind="white" className="sm" onClick={() => setF({ id: q.id, text: q.text, type: q.type, optionsText: (q.options || []).join('\n'), required: q.required })}><Ico n="edit" /></Btn>
+            <Confirm label="" sure="¿Borrar?" onYes={async () => { try { await api.deleteQuestion(q.id); reload(); } catch (e) { toast(e.message, 'err'); } }} />
+          </div>
+        ))}
+        {!questions.length && <p className="muted">Aún no hay preguntas extra. Agrega la primera.</p>}
+      </div>
+    </div>
+  );
+}
+
+function Responses({ waiters, responses, settings, reload }) {
+  const [wid, setWid] = useState('all'), [lim, setLim] = useState(40);
+  const name = useMemo(() => Object.fromEntries(waiters.map(w => [w.id, w.full_name])), [waiters]);
+  const list = responses.filter(r => wid === 'all' || r.waiter_id === wid);
+  return (
+    <div className="card">
+      <div className="row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+        <div className="h2" style={{ margin: 0 }}>Respuestas ({list.length})</div>
+        <select className="inp" style={{ width: 'auto' }} value={wid} onChange={e => setWid(e.target.value)}><option value="all">Todos los meseros</option>{waiters.map(w => <option key={w.id} value={w.id}>{w.full_name}</option>)}</select>
+      </div>
+      {list.slice(0, lim).map(r => (
+        <div className="resp" key={r.id}>
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <div className="row"><span className="score">{settings.rating_scale === 'stars' && r.scale === 5 ? r.rating + '★' : r.rating + '/' + r.scale}</span><div><b>{name[r.waiter_id] || 'Mesero eliminado'}</b><div className="muted" style={{ fontSize: 12 }}>{fmtDateTime(r.created_at)}</div></div></div>
+            <Confirm label="" sure="¿Borrar?" onYes={async () => { try { await api.deleteResponse(r.id); reload(); } catch (e) { toast(e.message, 'err'); } }} />
+          </div>
+          {Object.values(r.answers || {}).map((a, i) => <div key={i} style={{ fontSize: 14, marginTop: 6 }}><span className="muted">{a.q}</span> <b>{String(a.v)}</b></div>)}
+          {r.comment && <p style={{ marginTop: 8, fontStyle: 'italic' }}>“{r.comment}”</p>}
+        </div>
+      ))}
+      {list.length > lim && <Btn kind="ghost" className="block" onClick={() => setLim(lim + 40)}>Ver más</Btn>}
+      {!list.length && <p className="muted">Sin respuestas en este periodo.</p>}
+    </div>
+  );
+}
+
+function Settings({ settings, reload }) {
+  const [s, setS] = useState(settings);
+  const set = (k) => (e) => setS({ ...s, [k]: e.target.value });
+  const save = async () => { try { await api.saveSettings(s); toast('Ajustes guardados'); reload(); } catch (e) { toast(e.message, 'err'); } };
+  return (
+    <div className="grid2">
+      <div className="card">
+        <div className="h2">Encuesta</div>
+        <div className="field"><label>Nombre del negocio</label><input className="inp" value={s.business_name} onChange={set('business_name')} /></div>
+        <div className="field"><label>Pregunta principal (calificación del mesero)</label><input className="inp" value={s.main_question} onChange={set('main_question')} /></div>
+        <div className="field"><label>Tipo de calificación</label>
+          <div className="row"><button className={'chip' + (s.rating_scale === 'stars' ? ' on' : '')} onClick={() => setS({ ...s, rating_scale: 'stars' })}>⭐ Estrellas (1–5)</button><button className={'chip' + (s.rating_scale === 'ten' ? ' on' : '')} onClick={() => setS({ ...s, rating_scale: 'ten' })}>🔟 Escala 1–10</button></div>
+          <p className="muted" style={{ fontSize: 12 }}>Las encuestas anteriores se conservan y se comparan automáticamente en la misma escala.</p>
+        </div>
+        <div className="field"><label>Mensaje de agradecimiento</label><textarea className="inp" style={{ minHeight: 80 }} value={s.thanks_message} onChange={set('thanks_message')} /></div>
+      </div>
+      <div className="card">
+        <div className="h2">Reseñas de Google</div>
+        <div className="field"><label>Place ID de tu negocio</label><input className="inp" value={s.google_place_id} onChange={set('google_place_id')} placeholder="ChIJ…" /></div>
+        <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Búscalo en <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener">el buscador de Place ID de Google</a>. Se abre directo el formulario de reseña.</p>
+        <div className="field"><label>…o enlace directo de reseña (opcional, tiene prioridad)</label><input className="inp" value={s.google_review_url} onChange={set('google_review_url')} placeholder="https://g.page/r/…/review" /></div>
+        <div className="field"><label>URL pública de la app (opcional)</label><input className="inp" value={s.site_url} onChange={set('site_url')} placeholder="https://tuusuario.github.io/tag-mesero/" /></div>
+        <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Es la dirección que llevan los QR/TAG. Si la dejas vacía se usa la de esta página; confírmala antes de imprimir.</p>
+        <Btn kind="sky" className="block" onClick={save}>Guardar ajustes</Btn>
+      </div>
+    </div>
+  );
+}
+
+function Admin() {
+  const [tab, setTab] = useState('resumen');
+  const [range, setRange] = useState('30');
+  const [data, setData] = useState({ settings: DEFAULTS, waiters: [], questions: [], responses: [] });
+  const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => {
+    try {
+      const [settings, waiters, questions, responses] = await Promise.all([api.getSettings(), api.listWaiters(), api.listQuestions(), api.listResponses(rangeStart(range))]);
+      setData({ settings, waiters, questions, responses });
+    } catch (e) { toast('Error de datos: ' + e.message, 'err'); }
+    setLoading(false);
+  }, [range]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { const t = setInterval(() => { if (!document.hidden) load(); }, 60000); return () => clearInterval(t); }, [load]);
+  const tabs = [['resumen', 'chart', 'Resumen'], ['meseros', 'users', 'Meseros'], ['preguntas', 'list', 'Preguntas'], ['respuestas', 'chat', 'Respuestas'], ['ajustes', 'gear', 'Ajustes']];
+  const ranges = [['today', 'Hoy'], ['7', '7 días'], ['30', '30 días'], ['90', '90 días'], ['all', 'Todo']];
+  return (
+    <div>
+      <div className="ad-head">
+        <div className="ad-top">
+          <img src="aqua.png" alt="Aquamare" />
+          <div className="row"><Btn kind="sky" className="sm" icon="refresh" onClick={load}>Actualizar</Btn><a className="btn ghost sm" href="./">Ver encuesta</a></div>
+        </div>
+        <div className="tabs">{tabs.map(([k, i, l]) => <button key={k} className={'tab' + (tab === k ? ' on' : '')} onClick={() => setTab(k)}><Ico n={i} />{l}</button>)}</div>
+      </div>
+      <div className="ad-main">
+        {DEMO && <div className="banner">Modo demo: los datos se guardan solo en este navegador. Pega tu URL y anon key de Supabase en <code>CONFIG</code> (arriba en index.html) para usar la nube.</div>}
+        {(tab === 'resumen' || tab === 'respuestas') && <div className="chips">{ranges.map(([k, l]) => <button key={k} className={'chip' + (range === k ? ' on' : '')} onClick={() => setRange(k)}>{l}</button>)}</div>}
+        {loading ? <div className="card"><p className="muted">Cargando…</p></div> : <>
+          {tab === 'resumen' && <Dashboard {...data} range={range} />}
+          {tab === 'meseros' && <Waiters {...data} reload={load} />}
+          {tab === 'preguntas' && <Questions {...data} reload={load} />}
+          {tab === 'respuestas' && <Responses {...data} reload={load} />}
+          {tab === 'ajustes' && <Settings key={JSON.stringify(data.settings)} settings={data.settings} reload={load} />}
+        </>}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- router ---------- */
+function App() {
+  const [h, setH] = useState(location.hash);
+  useEffect(() => { const f = () => setH(location.hash); window.addEventListener('hashchange', f); return () => window.removeEventListener('hashchange', f); }, []);
+  const code = new URLSearchParams(location.search).get('m');
+  return <>
+    {h.startsWith('#/admin') ? <Admin /> : code ? <Survey code={code} /> : <Home />}
+    <Toasts />
+  </>;
+}
+
+// ripple en todos los botones
+document.addEventListener('pointerdown', (e) => {
+  const b = e.target.closest && e.target.closest('.btn'); if (!b) return;
+  const r = b.getBoundingClientRect();
+  b.style.setProperty('--x', (e.clientX - r.left) + 'px'); b.style.setProperty('--y', (e.clientY - r.top) + 'px');
+  b.classList.remove('rip'); void b.offsetWidth; b.classList.add('rip');
+});
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

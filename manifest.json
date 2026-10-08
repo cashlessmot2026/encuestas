@@ -1,0 +1,16 @@
+{
+  "name": "Encuesta de Servicio",
+  "short_name": "Encuesta",
+  "description": "Califica el servicio de tu mesero",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#061045",
+  "theme_color": "#061045",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

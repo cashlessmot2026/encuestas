@@ -1,4 +1,4 @@
-const V = 'encuesta-v2';
+const V = 'encuesta-v3';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './aqua.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {

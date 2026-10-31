@@ -207,7 +207,7 @@ const fmtScore = (v10, mode) => v10 == null ? '—' : mode === 'stars' ? (v10 / 
 const initials = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('');
 const PALETTE = ['#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#84CC16', '#6366F1', '#EAB308', '#06B6D4', '#D946EF', '#22C55E', '#FB7185'];
 const colorFor = (i) => i < PALETTE.length ? PALETTE[i] : `hsl(${(i * 47) % 360} 70% 50%)`;
-const DEFAULTS = { id: 1, business_name: 'Aquamare Hotel', main_question: '¿Cómo calificas el servicio de tu mesero?', rating_scale: 'stars', google_place_id: '', google_review_url: '', tripadvisor_review_url: '', roulette_enabled: false, roulette_start_hour: 10, roulette_end_hour: 21, roulette_valid_days: 30, roulette_pct_1: 10, roulette_pct_2: 5, roulette_pct_3: 2, roulette_prize_1: '', roulette_prize_2: '', roulette_prize_3: '', site_url: '', thanks_message: '¡Gracias por tu opinión! Nos ayuda a mejorar cada día.', privacy_company: 'Aquamare Hotel', privacy_nit: '', privacy_address: '', privacy_email: '', privacy_policy: '', privacy_version: '1.0' };
+const DEFAULTS = { id: 1, business_name: 'Aquamare Hotel', main_question: '¿Cómo calificas el servicio de tu mesero?', rating_scale: 'stars', google_place_id: '', google_review_url: '', tripadvisor_review_url: '', review_varka_url: 'https://www.tripadvisor.co/UserReviewEdit-g297482-d27474761-Restaurante_Varka_Aquamare_Hotel-San_Andres_Island_San_Andres_and_Providencia_Department.html', review_coral_url: 'https://www.tripadvisor.co/UserReviewEdit-g297482-d27094042-Coral_Bar-San_Andres_Island_San_Andres_and_Providencia_Department.html', roulette_enabled: false, roulette_win_pct: 5, roulette_tries: 1, roulette_valid_days: 30, site_url: '', thanks_message: '¡Gracias por tu opinión! Nos ayuda a mejorar cada día.', privacy_company: 'Aquamare Hotel', privacy_nit: '', privacy_address: '', privacy_email: '', privacy_policy: '', privacy_version: '1.0' };
 const POLICY_TPL = `## 1. Responsable del tratamiento
 {empresa}, NIT {nit}, domicilio {direccion}, correo electrónico {email}.
 
@@ -319,8 +319,14 @@ const api = {
   async listPrizes() {
     return ck(await sb.from('prizes').select('*').not('won_at', 'is', null).order('won_at', { ascending: false }).limit(200));
   },
-  async todayPrizes() {
-    return ck(await sb.from('prizes').select('*').eq('day', dayKey(new Date())).order('release_at'));
+  async listRoulettePrizes() {
+    return ck(await sb.from('roulette_prizes').select('*').order('position').order('created_at'));
+  },
+  async saveRoulettePrize(p) {
+    ck(await sb.from('roulette_prizes').upsert(p));
+  },
+  async deleteRoulettePrize(id) {
+    ck(await sb.from('roulette_prizes').delete().eq('id', id));
   },
   async redeemPrize(id) {
     ck(await sb.from('prizes').update({ redeemed_at: new Date().toISOString() }).eq('id', id));
@@ -474,9 +480,6 @@ function RatingInput({ mode, value, onChange }) {
 }
 
 /* ---------- ruleta de premios ---------- */
-const pctOf = (v, d) => { const n = Math.round(+v); return n >= 1 && n <= 100 ? n : d; };
-const PCT_DEF = { 1: 10, 2: 5, 3: 2 };
-const prizeLabel = (s, n) => ((s['roulette_prize_' + n] || '').trim()) || pctOf(s['roulette_pct_' + n], PCT_DEF[n]) + '% de descuento';
 const wonLabel = (p) => p.label || p.pct + '% de descuento';
 // texto de la casilla: «10%» grande si empieza con un %, si no el premio partido en líneas cortas
 const wheelText = (label) => {
@@ -487,11 +490,16 @@ const wheelText = (label) => {
   const out = lines.slice(0, 3).map((l, i) => i === 2 && lines.length > 3 ? l.slice(0, 8) + '…' : l.length > 12 ? l.slice(0, 11) + '…' : l);
   return { lines: out, size: Math.max(...out.map(l => l.length)) > 9 ? 8.5 : 10.5 };
 };
-const wheelOf = (s) => [{ t: 'win', slot: 1, c: '#4CC9F0' }, { t: 'no', c: '#0B1A66' }, { t: 'win', slot: 2, c: '#FFB800' }, { t: 'no', c: '#0B1A66' }, { t: 'win', slot: 3, c: '#7BE0AD' }, { t: 'no', c: '#0B1A66' }]
-  .map(w => w.t === 'win' ? { ...w, pct: pctOf(s['roulette_pct_' + w.slot], PCT_DEF[w.slot]), label: prizeLabel(s, w.slot) } : w);
+const WCOLORS = ['#4CC9F0', '#FFB800', '#7BE0AD', '#FF8FA3', '#B69CFF', '#FFD27A'];
+// casillas: premio, «Sigue intentando», premio… (mínimo 6 casillas; con pocos premios se repiten)
+const wheelOf = (prizes) => {
+  const out = [], half = Math.max(prizes.length, 3);
+  for (let i = 0; i < half; i++) { const n = i % prizes.length; out.push({ t: 'win', id: prizes[n].id, label: prizes[n].label, c: WCOLORS[n % WCOLORS.length] }, { t: 'no', c: '#0B1A66' }); }
+  return out;
+};
 const deviceId = () => { try { let d = localStorage.getItem('aq_dev'); if (!d) { d = uid(); localStorage.setItem('aq_dev', d); } return d; } catch (e) { return null; } };
-function Roulette({ settings, responseId }) {
-  const WHEEL = wheelOf(settings);
+function Roulette({ prizes, responseId }) {
+  const WHEEL = wheelOf(prizes), A = 360 / WHEEL.length, slim = WHEEL.length > 6;
   const key = 'aq_spin_' + responseId;
   const saved = (() => { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } })();
   const [res, setRes] = useState(saved);
@@ -503,36 +511,39 @@ function Roulette({ settings, responseId }) {
     setSpinning(true); setMsg('');
     let out;
     try { out = await api.spin(responseId, deviceId()); } catch (e) { setSpinning(false); setMsg('No se pudo girar: ' + e.message); return; }
-    if (out.error) { setSpinning(false); setMsg(out.error === 'device' ? 'Hoy ya jugaste la ruleta desde este celular. ¡Vuelve en tu próxima visita!' : 'La ruleta no está disponible para esta encuesta.'); return; }
-    const hit = (w) => !out.won ? w.t === 'no' : w.t === 'win' && (out.slot ? w.slot === out.slot : w.pct === out.pct);
+    if (out.error) { setSpinning(false); setRes(null); setMsg(out.error === 'used' || out.error === 'device' || out.error === 'already' ? 'Ya usaste tu oportunidad de la ruleta desde este celular. ¡Gracias por participar!' : 'La ruleta no está disponible para esta encuesta.'); return; }
+    const hit = (w) => !out.won ? w.t === 'no' : w.t === 'win' && w.id === out.prize_id;
     let idxs = WHEEL.map((w, i) => [w, i]).filter(([w]) => hit(w)).map(([, i]) => i);
     if (!idxs.length) idxs = WHEEL.map((w, i) => [w, i]).filter(([w]) => w.t === (out.won ? 'win' : 'no')).map(([, i]) => i);
     const i = idxs[Math.floor(Math.random() * idxs.length)];
-    setRot(360 * 6 - (i * 60 + 30 + (Math.random() * 30 - 15)));
+    setRot(r => Math.ceil(r / 360) * 360 + 360 * 6 - (i * A + A / 2 + (Math.random() - .5) * A * .5));
     setTimeout(() => { setSpinning(false); setRes(out); try { localStorage.setItem(key, JSON.stringify(out)); } catch (e) {} }, 4600);
   };
+  const again = res && !res.won && res.left > 0;
   return (
     <div className="g-card rl">
       <h3 style={{ fontSize: 20 }}>🎁 ¡Gira la ruleta!</h3>
-      <p>Una sola oportunidad de ganar un premio para tu próxima visita.</p>
+      <p>Una oportunidad de ganar un premio para tu próxima visita.</p>
       <div className="wheel-wrap">
         <div className="wpin" />
         <svg className="wheel" viewBox="0 0 200 200" style={{ transform: `rotate(${rot}deg)` }}>
-          {WHEEL.map((w, i) => { const [x1, y1] = pt(i * 60), [x2, y2] = pt(i * 60 + 60); const wt = w.t === 'win' ? wheelText(w.label) : { lines: ['Sigue', 'intentando'] }; return (
+          {WHEEL.map((w, i) => { const [x1, y1] = pt(i * A), [x2, y2] = pt(i * A + A); const fg = w.t === 'win' ? '#061045' : '#fff'; const wt = w.t === 'win' ? wheelText(w.label) : { lines: ['Sigue', 'intentando'] }; return (
             <g key={i}>
               <path d={`M100 100 L${x1} ${y1} A${R} ${R} 0 0 1 ${x2} ${y2}Z`} fill={w.c} stroke="#fff" strokeWidth="2" />
-              <g transform={`rotate(${i * 60 + 30} 100 100)`}>
-                {wt.big ? <text x="100" y="38" textAnchor="middle" fontSize="22" fontWeight="800" fill="#061045">{wt.big}</text>
-                  : wt.lines.map((l, j) => <text key={j} x="100" y={36 + j * 12.5} textAnchor="middle" fontSize={wt.size || 10.5} fontWeight="800" fill={w.t === 'win' ? '#061045' : '#fff'}>{l}</text>)}
+              <g transform={`rotate(${i * A + A / 2} 100 100)`}>
+                {slim ? <text x="100" y="52" transform="rotate(-90 100 52)" textAnchor="middle" dominantBaseline="middle" fontSize={wt.big ? 14 : 8.5} fontWeight="800" fill={fg}>{wt.big || (w.t === 'win' ? (w.label.length > 14 ? w.label.slice(0, 13) + '…' : w.label) : 'Sigue intentando')}</text>
+                  : wt.big ? <text x="100" y="38" textAnchor="middle" fontSize="22" fontWeight="800" fill={fg}>{wt.big}</text>
+                  : wt.lines.map((l, j) => <text key={j} x="100" y={36 + j * 12.5} textAnchor="middle" fontSize={wt.size || 10.5} fontWeight="800" fill={fg}>{l}</text>)}
               </g>
             </g>); })}
           <circle cx="100" cy="100" r="14" fill="#fff" stroke="#061045" strokeWidth="3" />
         </svg>
       </div>
-      {!res && <button className="btn sky block pulse" disabled={spinning} onClick={go}>{spinning ? 'Girando…' : 'GIRAR'}</button>}
+      {(!res || again) && !spinning && msg === '' && <button className="btn sky block pulse" onClick={go}>{again ? 'GIRAR DE NUEVO' : 'GIRAR'}</button>}
+      {spinning && <button className="btn sky block" disabled>Girando…</button>}
       {msg && <div className="mini">{msg}</div>}
-      {res && res.won && <div className="prize"><div style={{ fontSize: 15 }}>¡Felicitaciones! Ganaste</div><div className="big">{wonLabel(res)}</div><div className="cpn">{res.code}</div><div className="mini">Válido en tu próxima visita hasta el {fmtDay(res.valid_until)}. Toma una captura de pantalla y muéstrala a tu mesero.</div></div>}
-      {res && !res.won && <div className="prize"><div className="big" style={{ fontSize: 22 }}>¡Sigue intentando!</div><div className="mini">Esta vez no hubo premio. Gracias por participar, ¡te esperamos pronto!</div></div>}
+      {res && res.won && !spinning && <div className="prize"><div style={{ fontSize: 15 }}>¡Felicitaciones! Ganaste</div><div className="big">{wonLabel(res)}</div><div className="cpn">{res.code}</div><div className="mini">Válido en tu próxima visita hasta el {fmtDay(res.valid_until)}. Toma una captura de pantalla y muéstrala a tu mesero.</div></div>}
+      {res && !res.won && !spinning && <div className="prize" style={{ marginTop: again ? 12 : 0 }}><div className="big" style={{ fontSize: 22 }}>¡Sigue intentando!</div><div className="mini">{again ? `Esta vez no hubo premio. Te ${res.left === 1 ? 'queda 1 intento' : 'quedan ' + res.left + ' intentos'}.` : 'Esta vez no hubo premio. Gracias por participar, ¡te esperamos pronto!'}</div></div>}
     </div>
   );
 }
@@ -551,18 +562,30 @@ function Survey({ code }) {
   const [agree, setAgree] = useState(false);
   const [refused, setRefused] = useState(false);
   const [policyOpen, setPolicyOpen] = useState(false);
+  const [phase, setPhase] = useState('reviews'); // al terminar: 'reviews' (reseñas) y luego 'final' (ruleta)
+  const [opened, setOpened] = useState({});
+  const [ask, setAsk] = useState(false);
+  const away = useRef(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const [settings, waiter, questions] = await Promise.all([api.getSettings(), api.getWaiterByCode(code), api.listQuestions(true)]);
-        setBoot(!waiter || !waiter.active ? { status: 'notfound', settings } : { status: 'ok', settings, waiter, questions });
+        const [settings, waiter, questions, prizes] = await Promise.all([api.getSettings(), api.getWaiterByCode(code), api.listQuestions(true), api.listRoulettePrizes().catch(() => [])]);
+        setBoot(!waiter || !waiter.active ? { status: 'notfound', settings } : { status: 'ok', settings, waiter, questions, prizes });
       } catch (e) { setBoot({ status: 'error', msg: e.message }); }
     })();
   }, [code]);
 
+  // al volver de escribir una reseña, pregunta si quiere terminar la encuesta
+  useEffect(() => {
+    const back = () => { if (document.visibilityState === 'visible' && away.current) { away.current = false; setAsk(true); } };
+    document.addEventListener('visibilitychange', back);
+    window.addEventListener('focus', back);
+    return () => { document.removeEventListener('visibilitychange', back); window.removeEventListener('focus', back); };
+  }, []);
+
   if (boot.status === 'loading') return <div className="splash"><img src="aqua.png" alt="" /></div>;
-  const { settings, waiter, questions } = boot;
+  const { settings, waiter, questions, prizes } = boot;
   const frame = (children) => (
     <div className="sv"><div className="sv-in">
       <img className="sv-logo" src="aqua.png" alt={settings ? settings.business_name : ''} />
@@ -608,8 +631,43 @@ function Survey({ code }) {
   };
 
   if (done) {
-    const gurl = googleUrl(settings);
-    const openGoogle = () => { if (comment.trim() && navigator.clipboard) navigator.clipboard.writeText(comment.trim()).catch(() => {}); };
+    const reviews = [
+      { k: 'varka', url: settings.review_varka_url, title: 'Restaurante Varka', sub: '¿Qué tal estuvo la comida? Califícanos en TripAdvisor.', site: 'TripAdvisor' },
+      { k: 'coral', url: settings.review_coral_url, title: 'Coral Bar', sub: 'Cuéntales a otros viajeros cómo estuvo el bar.', site: 'TripAdvisor' },
+      { k: 'google', url: googleUrl(settings), title: settings.business_name + ' en Google', sub: 'Solo toma 10 segundos y nos ayuda muchísimo.', site: 'Google' },
+      { k: 'hotel', url: settings.tripadvisor_review_url, title: settings.business_name + ' en TripAdvisor', sub: 'Cuéntales a otros viajeros cómo fue tu estadía.', site: 'TripAdvisor' },
+    ].filter(r => r.url);
+    const showRoulette = settings.roulette_enabled && respId && prizes && prizes.length > 0;
+    const finish = () => { setAsk(false); setPhase('final'); window.scrollTo(0, 0); };
+    const openReview = (r) => { setOpened(o => ({ ...o, [r.k]: true })); away.current = true; if (comment.trim() && navigator.clipboard) navigator.clipboard.writeText(comment.trim()).catch(() => {}); };
+    const stars = <div className="gs">{[0, 1, 2, 3, 4].map(i => <svg key={i} viewBox="0 0 24 24" style={{ animationDelay: (0.3 + i * 0.1) + 's' }}><path d={P.star} /></svg>)}</div>;
+    if (phase === 'reviews' && reviews.length) return frame(
+      <div>
+        <div className="card done">
+          <div className="check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></div>
+          <div className="q" style={{ marginBottom: 8 }}>¡Respuestas enviadas!</div>
+          <p className="muted">¿Nos ayudas con una reseña? Tu opinión les sirve a otros viajeros.</p>
+        </div>
+        {reviews.map((r, i) => (
+          <div className="g-card" key={r.k}>
+            {stars}
+            <h3 style={{ fontSize: 20 }}>{r.title}</h3>
+            <p>{r.sub}</p>
+            <a className={'btn sky block' + (i === 0 && !opened[r.k] ? ' pulse' : '')} href={r.url} target="_blank" rel="noopener" onClick={() => openReview(r)}>{opened[r.k] ? '✓ Reseña abierta · volver a abrir' : 'Escribir reseña en ' + r.site}</a>
+            {comment.trim() && <div className="mini">Copiamos tu comentario: solo pégalo en {r.site}.</div>}
+          </div>
+        ))}
+        <Btn className="block" style={{ marginTop: 16 }} onClick={finish}>Terminar encuesta</Btn>
+        {ask && <Modal onClose={() => setAsk(false)}>
+          <div className="q" style={{ marginBottom: 8 }}>¡Gracias por tu reseña!</div>
+          <p className="muted" style={{ marginBottom: 16 }}>¿Quieres terminar la encuesta?</p>
+          <div className="nav" style={{ marginTop: 0 }}>
+            <Btn kind="ghost" className="grow" onClick={() => setAsk(false)}>Dejar otra reseña</Btn>
+            <Btn kind="sky" className="grow" onClick={finish}>{showRoulette ? 'Terminar y girar' : 'Terminar'}</Btn>
+          </div>
+        </Modal>}
+      </div>
+    );
     return frame(
       <div>
         <div className="card done">
@@ -617,25 +675,7 @@ function Survey({ code }) {
           <div className="q" style={{ marginBottom: 8 }}>¡Gracias!</div>
           <p className="muted">{settings.thanks_message}</p>
         </div>
-        {settings.roulette_enabled && respId && <Roulette settings={settings} responseId={respId} />}
-        {gurl && (
-          <div className="g-card">
-            <div className="gs">{[0, 1, 2, 3, 4].map(i => <svg key={i} viewBox="0 0 24 24" style={{ animationDelay: (0.3 + i * 0.1) + 's' }}><path d={P.star} /></svg>)}</div>
-            <h3 style={{ fontSize: 20 }}>¿Nos regalas una reseña en Google?</h3>
-            <p>Solo toma 10 segundos y nos ayuda muchísimo.</p>
-            <a className="btn sky block pulse" href={gurl} target="_blank" rel="noopener" onClick={openGoogle}>Escribir reseña en Google</a>
-            {comment.trim() && <div className="mini">Copiamos tu comentario: solo pégalo en Google.</div>}
-          </div>
-        )}
-        {settings.tripadvisor_review_url && (
-          <div className="g-card ta">
-            <div className="gs">{[0, 1, 2, 3, 4].map(i => <svg key={i} viewBox="0 0 24 24" style={{ animationDelay: (0.3 + i * 0.1) + 's' }}><path d={P.star} /></svg>)}</div>
-            <h3 style={{ fontSize: 20 }}>¿Y en TripAdvisor?</h3>
-            <p>Cuéntales a otros viajeros cómo fue tu experiencia.</p>
-            <a className="btn sky block" href={settings.tripadvisor_review_url} target="_blank" rel="noopener" onClick={openGoogle}>Escribir reseña en TripAdvisor</a>
-            {comment.trim() && <div className="mini">Copiamos tu comentario: solo pégalo en TripAdvisor.</div>}
-          </div>
-        )}
+        {showRoulette && <Roulette prizes={prizes} responseId={respId} />}
       </div>
     );
   }
@@ -1012,9 +1052,9 @@ function AdminAccess({ session, onChanged }) {
 }
 
 function Settings({ settings, reload, session, onSession }) {
-  const [s, setS] = useState(() => ({ ...settings, roulette_prize_1: prizeLabel(settings, 1), roulette_prize_2: prizeLabel(settings, 2), roulette_prize_3: prizeLabel(settings, 3) }));
+  const [s, setS] = useState(settings);
   const set = (k) => (e) => setS({ ...s, [k]: e.target.value });
-  const save = async () => { try { await api.saveSettings({ ...s, roulette_prize_1: s.roulette_prize_1.trim(), roulette_prize_2: s.roulette_prize_2.trim(), roulette_prize_3: s.roulette_prize_3.trim() }); toast('Ajustes guardados'); reload(); } catch (e) { toast(e.message, 'err'); } };
+  const save = async () => { try { await api.saveSettings({ ...s, roulette_win_pct: Math.min(Math.max(Math.round(+s.roulette_win_pct) || 0, 0), 100), roulette_tries: Math.max(Math.round(+s.roulette_tries) || 1, 1) }); toast('Ajustes guardados'); reload(); } catch (e) { toast(e.message, 'err'); } };
   return (
     <div className="grid2">
       <div className="card">
@@ -1033,25 +1073,25 @@ function Settings({ settings, reload, session, onSession }) {
         <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Búscalo en <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener">el buscador de Place ID de Google</a>. Se abre directo el formulario de reseña.</p>
         <div className="field"><label>…o enlace directo de reseña (opcional, tiene prioridad)</label><input className="inp" value={s.google_review_url} onChange={set('google_review_url')} placeholder="https://g.page/r/…/review" /></div>
         <div className="h2" style={{ marginTop: 6 }}>Reseñas de TripAdvisor</div>
-        <div className="field"><label>Enlace para escribir reseña en TripAdvisor</label><input className="inp" value={s.tripadvisor_review_url} onChange={set('tripadvisor_review_url')} placeholder="https://www.tripadvisor.com/UserReview-g…-d….html" /></div>
+        <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Al terminar la encuesta se muestran en este orden: Restaurante Varka, Coral Bar, Google y el hotel. Si dejas un enlace vacío no aparece ese botón.</p>
+        {s._keys && s._keys.length > 0 && !s._keys.includes('review_varka_url') && <div className="banner">Para guardar los enlaces de Varka y Coral Bar ejecuta en Supabase el archivo <code>migracion-ruleta-inventario.sql</code>.</div>}
+        <div className="field"><label>Restaurante Varka</label><input className="inp" value={s.review_varka_url} onChange={set('review_varka_url')} placeholder="https://www.tripadvisor.co/UserReviewEdit-…" /></div>
+        <div className="field"><label>Coral Bar</label><input className="inp" value={s.review_coral_url} onChange={set('review_coral_url')} placeholder="https://www.tripadvisor.co/UserReviewEdit-…" /></div>
+        <div className="field"><label>Hotel</label><input className="inp" value={s.tripadvisor_review_url} onChange={set('tripadvisor_review_url')} placeholder="https://www.tripadvisor.com/UserReview-g…-d….html" /></div>
         <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>En TripAdvisor abre la página de tu hotel, pulsa «Escribir una opinión» y copia la dirección de esa página. Si lo dejas vacío no aparece el botón.</p>
         <div className="field"><label>URL pública de la app (opcional)</label><input className="inp" value={s.site_url} onChange={set('site_url')} placeholder="https://tuusuario.github.io/tag-mesero/" /></div>
         <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Es la dirección que llevan los QR/TAG. Si la dejas vacía se usa la de esta página; confírmala antes de imprimir.</p>
       </div>
       <div className="card span2">
-        <div className="h2">Ruleta de premios</div>
-        {s._keys && s._keys.length > 0 && !s._keys.includes('roulette_enabled') && <div className="banner">Falta ejecutar en Supabase el archivo <code>migracion-ruleta.sql</code>.</div>}
-        <div className="field row" style={{ alignItems: 'center' }}><Switch on={!!s.roulette_enabled} onChange={(v) => setS({ ...s, roulette_enabled: v })} /><b>Mostrar la ruleta al terminar la encuesta</b></div>
+        <div className="h2">Dinámica de la ruleta</div>
+        {s._keys && s._keys.length > 0 && !s._keys.includes('roulette_win_pct') && <div className="banner">Falta ejecutar en Supabase el archivo <code>migracion-ruleta-inventario.sql</code>.</div>}
+        <div className="field row" style={{ alignItems: 'center' }}><Switch on={!!s.roulette_enabled} onChange={(v) => setS({ ...s, roulette_enabled: v })} /><b>Juego {s.roulette_enabled ? 'ACTIVADO' : 'DESACTIVADO'}</b></div>
         <div className="grid2" style={{ gap: 0 }}>
-          <div className="field"><label>Empieza a repartir (hora, 0–23)</label><input className="inp" type="number" min="0" max="23" value={s.roulette_start_hour} onChange={e => setS({ ...s, roulette_start_hour: +e.target.value })} /></div>
-          <div className="field"><label>Termina de repartir (hora, 1–24)</label><input className="inp" type="number" min="1" max="24" value={s.roulette_end_hour} onChange={e => setS({ ...s, roulette_end_hour: +e.target.value })} /></div>
+          <div className="field"><label>Probabilidad de ganar por giro (%)</label><input className="inp" type="number" min="0" max="100" value={s.roulette_win_pct} onChange={set('roulette_win_pct')} /></div>
+          <div className="field"><label>Intentos por celular</label><input className="inp" type="number" min="1" value={s.roulette_tries} onChange={set('roulette_tries')} /></div>
           <div className="field"><label>Vigencia del cupón (días)</label><input className="inp" type="number" min="1" value={s.roulette_valid_days} onChange={e => setS({ ...s, roulette_valid_days: +e.target.value })} /></div>
         </div>
-        <div className="grid2" style={{ gap: 0 }}>
-          {[1, 2, 3].map(n => <div className="field" key={n}><label>Premio {n}</label><input className="inp" maxLength={40} value={s['roulette_prize_' + n]} onChange={e => setS({ ...s, ['roulette_prize_' + n]: e.target.value })} placeholder="Ej: Postre gratis, Cóctel de la casa, 10% de descuento" /></div>)}
-        </div>
-        {s._keys && s._keys.length > 0 && !s._keys.includes('roulette_prize_1') && <div className="banner">Para escribir los premios ejecuta en Supabase el archivo <code>migracion-premios-personal-admin.sql</code>.</div>}
-        <p className="muted" style={{ fontSize: 12 }}>Escribe cada premio como quieras: un plato, una bebida, un postre o un descuento (si empieza con un número y %, p. ej. «10% de descuento», en la ruleta se ve grande). Usa textos cortos: en la ruleta caben unas 3 líneas. Cada día se reparte 1 unidad de cada premio ({prizeLabel(s, 1)}, {prizeLabel(s, 2)} y {prizeLabel(s, 3)}), en horas distintas del horario indicado (hora de Colombia). Cada encuesta gira una sola vez; el resto de giros dicen «Sigue intentando». Si cambias los premios, los de hoy ya creados se mantienen y el cambio aplica desde mañana. Los cupones se canjean en la pestaña Premios.</p>
+        <p className="muted" style={{ fontSize: 12 }}>Cuando un giro «gana», se asigna al azar un premio con inventario disponible y se descuenta 1 unidad. Si no queda inventario, el resultado es «Sigue intentando». Los intentos se cuentan por celular en total (no por día), y solo se juega después de responder la encuesta desde el QR o NFC de un mesero. Los premios y sus cantidades se editan en la pestaña <b>Premios</b>.</p>
       </div>
       <div className="card span2">
         <div className="h2">Privacidad · Habeas Data (Ley 1581 de 2012)</div>
@@ -1072,22 +1112,50 @@ function Settings({ settings, reload, session, onSession }) {
   );
 }
 
+function PrizeRow({ p, onSaved }) {
+  const [f, setF] = useState({ label: p.label, stock: p.stock });
+  const dirty = f.label !== p.label || +f.stock !== p.stock;
+  const save = async () => {
+    if (!f.label.trim()) return toast('Escribe la descripción del premio', 'err');
+    try { await api.saveRoulettePrize({ id: p.id, label: f.label.trim(), stock: Math.max(Math.round(+f.stock) || 0, 0), position: p.position }); toast('Premio guardado'); onSaved(); } catch (e) { toast(e.message, 'err'); }
+  };
+  return (
+    <div className="qrow">
+      <input className="inp grow" style={{ minWidth: 140, width: 'auto' }} maxLength={40} value={f.label} onChange={e => setF({ ...f, label: e.target.value })} />
+      <input className="inp" style={{ width: 90 }} type="number" min="0" value={f.stock} onChange={e => setF({ ...f, stock: e.target.value })} title="Cantidad disponible" />
+      <Btn kind="sky" className="sm" disabled={!dirty} onClick={save}>Guardar</Btn>
+      <Confirm label="" sure="¿Borrar?" onYes={async () => { try { await api.deleteRoulettePrize(p.id); onSaved(); } catch (e) { toast(e.message, 'err'); } }} />
+    </div>
+  );
+}
+
 function Prizes() {
-  const [list, setList] = useState(null), [today, setToday] = useState([]), [q, setQ] = useState('');
-  const load = useCallback(async () => { try { const [a, b] = await Promise.all([api.listPrizes(), api.todayPrizes()]); setList(a); setToday(b); } catch (e) { setList(e); } }, []);
+  const [list, setList] = useState(null), [stock, setStock] = useState([]), [q, setQ] = useState(''), [nw, setNw] = useState({ label: '', stock: 10 });
+  const load = useCallback(async () => { try { const [a, b] = await Promise.all([api.listPrizes(), api.listRoulettePrizes().catch(e => e)]); setList(a); setStock(b); } catch (e) { setList(e); } }, []);
   useEffect(() => { load(); }, [load]);
   if (!list) return <div className="card"><p className="muted">Cargando…</p></div>;
   if (list instanceof Error) return <div className="card"><div className="banner">Ejecuta <code>migracion-ruleta.sql</code> en Supabase. ({list.message})</div></div>;
   const redeem = async (p) => { try { await api.redeemPrize(p.id); toast('Cupón canjeado'); load(); } catch (e) { toast(e.message, 'err'); } };
+  const add = async () => {
+    if (!nw.label.trim()) return toast('Escribe la descripción del premio', 'err');
+    try { await api.saveRoulettePrize({ id: uid(), label: nw.label.trim(), stock: Math.max(Math.round(+nw.stock) || 0, 0), position: stock.length ? Math.max(...stock.map(x => x.position)) + 1 : 1 }); setNw({ label: '', stock: 10 }); toast('Premio agregado'); load(); } catch (e) { toast(e.message, 'err'); }
+  };
   const shown = list.filter(p => !q.trim() || (p.code || '').toLowerCase().includes(q.trim().toLowerCase()));
   const today0 = dayKey(new Date());
   return (
     <div className="grid2">
       <div className="card">
-        <div className="h2">Premios de hoy</div>
-        {today.length === 0 ? <p className="muted">Se crean con el primer giro del día.</p> : today.map(p => (
-          <div className="qrow" key={p.id}><div className="grow"><b>{wonLabel(p)}</b> <span className="muted">· se libera {new Date(p.release_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}</span></div><span className="score">{p.won_at ? 'Entregado' : new Date(p.release_at) <= new Date() ? 'Disponible' : 'Pendiente'}</span></div>
-        ))}
+        <div className="h2">Premios de la ruleta</div>
+        {stock instanceof Error ? <div className="banner">Ejecuta <code>migracion-ruleta-inventario.sql</code> en Supabase. ({stock.message})</div> : <>
+          <p className="muted" style={{ fontSize: 12, marginBottom: 12 }}>Descripción y cantidad disponible de cada premio (máximo 6). Cada premio ganado descuenta 1; en 0 ya no sale hasta que subas la cantidad. Si empieza con un número y % (p. ej. «10% de descuento») se ve grande en la ruleta.</p>
+          {stock.length === 0 && <p className="muted" style={{ marginBottom: 12 }}>Sin premios: la ruleta no se muestra hasta que agregues al menos uno.</p>}
+          {stock.map(p => <PrizeRow key={p.id + ':' + p.label + ':' + p.stock} p={p} onSaved={load} />)}
+          {stock.length < 6 && <div className="qrow" style={{ background: '#fff', boxShadow: 'inset 0 0 0 2px var(--ice)' }}>
+            <input className="inp grow" style={{ minWidth: 140, width: 'auto' }} maxLength={40} placeholder="Nuevo premio (ej: Postre gratis)" value={nw.label} onChange={e => setNw({ ...nw, label: e.target.value })} />
+            <input className="inp" style={{ width: 90 }} type="number" min="0" value={nw.stock} onChange={e => setNw({ ...nw, stock: e.target.value })} title="Cantidad disponible" />
+            <Btn kind="sky" className="sm" icon="plus" onClick={add}>Agregar</Btn>
+          </div>}
+        </>}
       </div>
       <div className="card">
         <div className="h2">Cupones entregados</div>

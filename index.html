@@ -634,6 +634,7 @@ function Survey({ code }) {
     const reviews = [
       { k: 'varka', url: settings.review_varka_url, title: 'Restaurante Varka', sub: '¿Qué tal estuvo la comida? Califícanos en TripAdvisor.', site: 'TripAdvisor' },
       { k: 'coral', url: settings.review_coral_url, title: 'Coral Bar', sub: 'Cuéntales a otros viajeros cómo estuvo el bar.', site: 'TripAdvisor' },
+      { k: 'coral-google', url: 'https://www.google.com/maps/place/Coral+bar+By+Aquamare/@12.5822271,-81.6920993,17.66z/data=!4m13!1m4!8m3!1e1!3m1!1e1!3m7!1s0x8f05a549b77d5b2b:0xb2df7dc0256f2547!8m2!3d12.5820939!4d-81.6914603!9m1!1b1!16s%2Fg%2F11p2k5215z?hl=en-GB&entry=ttu&g_ep=EgoyMDI2MTEwNC4wIKXMDSoASAFQAw%3D%3D', title: 'Coral Bar en Google', sub: '¿Te gustó el bar? Déjanos tus estrellas en Google.', site: 'Google' },
       { k: 'google', url: googleUrl(settings), title: settings.business_name + ' en Google', sub: 'Solo toma 10 segundos y nos ayuda muchísimo.', site: 'Google' },
       { k: 'hotel', url: settings.tripadvisor_review_url, title: settings.business_name + ' en TripAdvisor', sub: 'Cuéntales a otros viajeros cómo fue tu estadía.', site: 'TripAdvisor' },
     ].filter(r => r.url);
@@ -1073,7 +1074,7 @@ function Settings({ settings, reload, session, onSession }) {
         <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Búscalo en <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener">el buscador de Place ID de Google</a>. Se abre directo el formulario de reseña.</p>
         <div className="field"><label>…o enlace directo de reseña (opcional, tiene prioridad)</label><input className="inp" value={s.google_review_url} onChange={set('google_review_url')} placeholder="https://g.page/r/…/review" /></div>
         <div className="h2" style={{ marginTop: 6 }}>Reseñas de TripAdvisor</div>
-        <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Al terminar la encuesta se muestran en este orden: Restaurante Varka, Coral Bar, Google y el hotel. Si dejas un enlace vacío no aparece ese botón.</p>
+        <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>Al terminar la encuesta se muestran en este orden: Restaurante Varka, Coral Bar (TripAdvisor y Google), Google y el hotel. Si dejas un enlace vacío no aparece ese botón.</p>
         {s._keys && s._keys.length > 0 && !s._keys.includes('review_varka_url') && <div className="banner">Para guardar los enlaces de Varka y Coral Bar ejecuta en Supabase el archivo <code>migracion-ruleta-inventario.sql</code>.</div>}
         <div className="field"><label>Restaurante Varka</label><input className="inp" value={s.review_varka_url} onChange={set('review_varka_url')} placeholder="https://www.tripadvisor.co/UserReviewEdit-…" /></div>
         <div className="field"><label>Coral Bar</label><input className="inp" value={s.review_coral_url} onChange={set('review_coral_url')} placeholder="https://www.tripadvisor.co/UserReviewEdit-…" /></div>
